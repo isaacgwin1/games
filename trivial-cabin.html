@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivial Cabin - Trivia Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; background: #0f0f0f; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+
+
+const PRESET_CATEGORIES = [
+  { id: "history", label: "History", emoji: "🏛️" },
+  { id: "science", label: "Science", emoji: "🔬" },
+  { id: "pop-culture", label: "Pop Culture", emoji: "🎬" },
+  { id: "sports", label: "Sports", emoji: "🏆" },
+  { id: "geography", label: "Geography", emoji: "🌍" },
+  { id: "music", label: "Music", emoji: "🎵" },
+  { id: "food-drink", label: "Food & Drink", emoji: "🍕" },
+  { id: "tech", label: "Technology", emoji: "💻" },
+  { id: "literature", label: "Literature", emoji: "📚" },
+  { id: "movies-tv", label: "Movies & TV", emoji: "📺" },
+];
+
+const CATEGORY_COLORS = {
+  "history": "#C0392B",
+  "science": "#2980B9",
+  "pop-culture": "#8E44AD",
+  "sports": "#27AE60",
+  "geography": "#16A085",
+  "music": "#D35400",
+  "food-drink": "#F39C12",
+  "tech": "#2C3E50",
+  "literature": "#6D4C41",
+  "movies-tv": "#1A237E",
+  "custom": "#555",
+};
+
+const QUESTION_BANK = {
+  "history": [
+    { question: "Which ancient civilization built Machu Picchu?", options: ["A) Aztec", "B) Maya", "C) Inca", "D) Olmec"], answer: "C) Inca", explanation: "Machu Picchu was built in the 15th century by the Inca Empire.", year: 1450 },
+    { question: "In what year did the Berlin Wall fall?", options: ["A) 1987", "B) 1989", "C) 1991", "D) 1985"], answer: "B) 1989", explanation: "The Berlin Wall fell on November 9, 1989, leading to German reunification.", year: 1989 },
+    { question: "Who was the first woman to fly solo across the Atlantic Ocean?", options: ["A) Bessie Coleman", "B) Harriet Quimby", "C) Amelia Earhart", "D) Jacqueline Cochran"], answer: "C) Amelia Earhart", explanation: "Earhart completed her solo transatlantic flight in 1932.", year: 1932 },
+    { question: "The Treaty of Versailles ended which conflict?", options: ["A) Franco-Prussian War", "B) World War I", "C) World War II", "D) Napoleonic Wars"], answer: "B) World War I", explanation: "Signed in 1919, it imposed heavy reparations on Germany.", year: 1919 },
+    { question: "Which empire was ruled by Genghis Khan?", options: ["A) Ottoman Empire", "B) Roman Empire", "C) Mongol Empire", "D) Persian Empire"], answer: "C) Mongol Empire", explanation: "Genghis Khan founded the Mongol Empire in 1206, the largest contiguous land empire in history.", year: 1206 },
+    { question: "What event is commonly considered the start of the French Revolution?", options: ["A) Execution of Louis XVI", "B) Storming of the Bastille", "C) Tennis Court Oath", "D) Reign of Terror"], answer: "B) Storming of the Bastille", explanation: "The storming of the Bastille on July 14, 1789, became a symbol of uprising against royal authority.", year: 1789 },
+    { question: "Who was the first president of the United States?", options: ["A) Thomas Jefferson", "B) John Adams", "C) Benjamin Franklin", "D) George Washington"], answer: "D) George Washington", explanation: "Washington served two terms from 1789 to 1797.", year: 1789 },
+    { question: "The Rosetta Stone helped decode which ancient writing system?", options: ["A) Cuneiform", "B) Egyptian hieroglyphics", "C) Linear A", "D) Sanskrit"], answer: "B) Egyptian hieroglyphics", explanation: "Discovered in 1799, the Rosetta Stone had text in hieroglyphics, Demotic, and Greek.", year: 1799 },
+    { question: "Which country was the first to grant women the right to vote?", options: ["A) United States", "B) United Kingdom", "C) New Zealand", "D) Finland"], answer: "C) New Zealand", explanation: "New Zealand granted women the vote in 1893.", year: 1893 },
+    { question: "What was the name of the ship the Pilgrims sailed on in 1620?", options: ["A) Santa Maria", "B) Mayflower", "C) Endeavour", "D) Victoria"], answer: "B) Mayflower", explanation: "The Mayflower carried 102 passengers to Plymouth, Massachusetts.", year: 1620 },
+    { question: "The assassination of Archduke Franz Ferdinand triggered which event?", options: ["A) Napoleonic Wars", "B) World War II", "C) World War I", "D) Franco-Prussian War"], answer: "C) World War I", explanation: "His assassination in Sarajevo in 1914 set off a chain of alliances plunging Europe into war.", year: 1914 },
+    { question: "In what decade did the California Gold Rush begin?", options: ["A) 1820s", "B) 1830s", "C) 1840s", "D) 1850s"], answer: "C) 1840s", explanation: "Gold was discovered at Sutter's Mill in January 1848.", year: 1848 },
+    { question: "Who led the Indian independence movement through nonviolent resistance?", options: ["A) Jawaharlal Nehru", "B) Subhas Chandra Bose", "C) Mahatma Gandhi", "D) B.R. Ambedkar"], answer: "C) Mahatma Gandhi", explanation: "Gandhi's nonviolent resistance was instrumental in India gaining independence in 1947.", year: 1947 },
+    { question: "What year did Nelson Mandela become president of South Africa?", options: ["A) 1990", "B) 1992", "C) 1994", "D) 1996"], answer: "C) 1994", explanation: "Mandela became South Africa's first Black president after the country's first fully democratic election.", year: 1994 },
+    { question: "What ancient trade route connected China to the Mediterranean?", options: ["A) Spice Route", "B) Silk Road", "C) Amber Road", "D) Incense Route"], answer: "B) Silk Road", explanation: "The Silk Road connected East and West from the 2nd century BC through the 15th century.", year: 1000 },
+    { question: "Which Roman emperor made Christianity the official religion of Rome?", options: ["A) Julius Caesar", "B) Augustus", "C) Constantine", "D) Nero"], answer: "C) Constantine", explanation: "Constantine legalized Christianity in 313 AD via the Edict of Milan.", year: 313 },
+    { question: "Where did the D-Day invasion land on June 6, 1944?", options: ["A) Sicily", "B) Normandy", "C) Calais", "D) Brittany"], answer: "B) Normandy", explanation: "The Allied invasion of Normandy, France, was the largest seaborne invasion in history.", year: 1944 },
+    { question: "Who was the Egyptian queen who allied with Julius Caesar and Mark Antony?", options: ["A) Nefertiti", "B) Hatshepsut", "C) Cleopatra", "D) Isis"], answer: "C) Cleopatra", explanation: "Cleopatra VII was the last active ruler of the Ptolemaic Kingdom of Egypt.", year: 50 },
+    { question: "What was the name of the first artificial satellite launched into space?", options: ["A) Explorer 1", "B) Vostok", "C) Sputnik", "D) Luna"], answer: "C) Sputnik", explanation: "The Soviet Union launched Sputnik 1 on October 4, 1957, starting the Space Race.", year: 1957 },
+    { question: "Which war was fought between the North and South in the United States?", options: ["A) Revolutionary War", "B) War of 1812", "C) Civil War", "D) Mexican-American War"], answer: "C) Civil War", explanation: "The American Civil War lasted from 1861 to 1865 and ended slavery in the US.", year: 1861 },
+    { question: "Who was the first human to walk on the Moon?", options: ["A) Buzz Aldrin", "B) Yuri Gagarin", "C) Neil Armstrong", "D) John Glenn"], answer: "C) Neil Armstrong", explanation: "Armstrong stepped onto the lunar surface on July 20, 1969, during Apollo 11.", year: 1969 },
+    { question: "The Black Death pandemic in the 14th century was caused by what?", options: ["A) Influenza", "B) Bubonic plague", "C) Smallpox", "D) Cholera"], answer: "B) Bubonic plague", explanation: "The Black Death killed an estimated one-third of Europe's population between 1347 and 1351.", year: 1350 },
+    { question: "Which explorer first circumnavigated the globe?", options: ["A) Christopher Columbus", "B) Vasco da Gama", "C) Ferdinand Magellan", "D) Francis Drake"], answer: "C) Ferdinand Magellan", explanation: "Magellan led the first expedition to circumnavigate the Earth, completed in 1522.", year: 1522 },
+    { question: "What building project did Emperor Qin Shi Huang begin in China?", options: ["A) The Forbidden City", "B) The Great Wall", "C) The Grand Canal", "D) The Temple of Heaven"], answer: "B) The Great Wall", explanation: "Qin Shi Huang connected and extended existing walls to protect against northern invasions.", year: 221 },
+    { question: "In what year did World War II end?", options: ["A) 1943", "B) 1944", "C) 1945", "D) 1946"], answer: "C) 1945", explanation: "WWII ended in Europe in May 1945 and in the Pacific in September 1945.", year: 1945 },
+    { question: "Which ancient wonder of the world was located in Alexandria, Egypt?", options: ["A) Colossus of Rhodes", "B) Hanging Gardens", "C) Lighthouse of Alexandria", "D) Temple of Artemis"], answer: "C) Lighthouse of Alexandria", explanation: "The Pharos of Alexandria was one of the tallest structures in the ancient world.", year: 250 },
+    { question: "What revolution began in Britain in the late 18th century?", options: ["A) Agricultural Revolution", "B) Industrial Revolution", "C) Digital Revolution", "D) Scientific Revolution"], answer: "B) Industrial Revolution", explanation: "Britain's Industrial Revolution began around 1760, transforming manufacturing and society.", year: 1760 },
+    { question: "Who was the first woman to win a Nobel Prize?", options: ["A) Rosalind Franklin", "B) Ada Lovelace", "C) Marie Curie", "D) Florence Nightingale"], answer: "C) Marie Curie", explanation: "Marie Curie won the Nobel Prize in Physics in 1903, and again in Chemistry in 1911.", year: 1903 },
+    { question: "The Cuban Missile Crisis occurred in what year?", options: ["A) 1958", "B) 1960", "C) 1962", "D) 1964"], answer: "C) 1962", explanation: "The 13-day standoff between the US and USSR in October 1962 brought the world close to nuclear war.", year: 1962 },
+    { question: "Which empire built the Colosseum in Rome?", options: ["A) Greek Empire", "B) Ottoman Empire", "C) Roman Empire", "D) Byzantine Empire"], answer: "C) Roman Empire", explanation: "The Colosseum was completed around 80 AD under Emperor Titus and held up to 80,000 spectators.", year: 80 },
+    { question: "What document did the Founding Fathers sign on July 4, 1776?", options: ["A) The Constitution", "B) The Bill of Rights", "C) The Magna Carta", "D) The Declaration of Independence"], answer: "D) The Declaration of Independence", explanation: "The Declaration proclaimed independence from Britain and articulated fundamental rights.", year: 1776 },
+    { question: "Which country did Hitler's Germany invade first to start World War II?", options: ["A) France", "B) Poland", "C) Austria", "D) Czech Republic"], answer: "B) Poland", explanation: "Germany invaded Poland on September 1, 1939, prompting Britain and France to declare war.", year: 1939 },
+    { question: "Who was the leader of the Soviet Union during World War II?", options: ["A) Lenin", "B) Khrushchev", "C) Stalin", "D) Brezhnev"], answer: "C) Stalin", explanation: "Joseph Stalin led the USSR from 1924 until his death in 1953.", year: 1940 },
+    { question: "What year was the Magna Carta signed?", options: ["A) 1215", "B) 1315", "C) 1415", "D) 1515"], answer: "A) 1215", explanation: "King John of England signed the Magna Carta in 1215, establishing that everyone, including the king, was subject to the law.", year: 1215 },
+    { question: "Which US president issued the Emancipation Proclamation?", options: ["A) Andrew Jackson", "B) Ulysses Grant", "C) Abraham Lincoln", "D) James Buchanan"], answer: "C) Abraham Lincoln", explanation: "Lincoln issued the Emancipation Proclamation on January 1, 1863, freeing enslaved people in Confederate states.", year: 1863 },
+    { question: "The Titanic sank in what year?", options: ["A) 1910", "B) 1912", "C) 1914", "D) 1916"], answer: "B) 1912", explanation: "The RMS Titanic sank on April 15, 1912, after hitting an iceberg, killing over 1,500 people.", year: 1912 },
+    { question: "Who was the first person to fly an airplane?", options: ["A) Charles Lindbergh", "B) Amelia Earhart", "C) Orville Wright", "D) Glenn Curtiss"], answer: "C) Orville Wright", explanation: "Orville Wright made the first powered airplane flight at Kitty Hawk, North Carolina on December 17, 1903.", year: 1903 },
+    { question: "What Cold War policy aimed at preventing the spread of communism?", options: ["A) The Marshall Plan", "B) The Truman Doctrine", "C) Containment", "D) Detente"], answer: "C) Containment", explanation: "The containment policy, articulated by diplomat George Kennan, guided US foreign policy throughout the Cold War.", year: 1947 },
+    { question: "Which Native American leader defeated General Custer at Little Bighorn?", options: ["A) Geronimo", "B) Crazy Horse", "C) Sitting Bull", "D) Chief Joseph"], answer: "C) Sitting Bull", explanation: "Sitting Bull led the coalition of Lakota and Cheyenne warriors who defeated Custer in 1876.", year: 1876 },
+    { question: "What ancient city was destroyed by the eruption of Mount Vesuvius in 79 AD?", options: ["A) Rome", "B) Athens", "C) Pompeii", "D) Carthage"], answer: "C) Pompeii", explanation: "Mount Vesuvius buried Pompeii under volcanic ash in 79 AD, preserving it remarkably for millennia.", year: 79 },
+    { question: "Who wrote the Communist Manifesto?", options: ["A) Lenin and Stalin", "B) Marx and Engels", "C) Trotsky and Mao", "D) Engels and Bakunin"], answer: "B) Marx and Engels", explanation: "Karl Marx and Friedrich Engels published The Communist Manifesto in 1848.", year: 1848 },
+    { question: "Which country was the first to land a rover on the far side of the Moon?", options: ["A) USA", "B) Russia", "C) China", "D) Japan"], answer: "C) China", explanation: "China's Chang'e 4 mission landed on the far side of the Moon in January 2019.", year: 2019 },
+    { question: "What was the name of the space shuttle that exploded after launch in 1986?", options: ["A) Columbia", "B) Discovery", "C) Challenger", "D) Atlantis"], answer: "C) Challenger", explanation: "The Space Shuttle Challenger broke apart 73 seconds after launch on January 28, 1986.", year: 1986 },
+    { question: "The Battle of Waterloo ended whose rule in Europe?", options: ["A) King George III", "B) Napoleon Bonaparte", "C) Frederick the Great", "D) Otto von Bismarck"], answer: "B) Napoleon Bonaparte", explanation: "Napoleon's defeat at Waterloo in 1815 ended the Napoleonic Wars and his rule of France.", year: 1815 },
+    { question: "Which ancient Greek city-state was known for its military discipline?", options: ["A) Athens", "B) Corinth", "C) Sparta", "D) Thebes"], answer: "C) Sparta", explanation: "Sparta was famous for its rigorous military training regime known as the agoge.", year: 500 },
+    { question: "The Iran Hostage Crisis lasted how many days?", options: ["A) 144", "B) 244", "C) 344", "D) 444"], answer: "D) 444", explanation: "Iranian students held 52 American diplomats hostage for 444 days from 1979 to 1981.", year: 1981 },
+    { question: "Which country was the first to develop nuclear weapons?", options: ["A) Soviet Union", "B) United Kingdom", "C) United States", "D) Germany"], answer: "C) United States", explanation: "The US developed the first nuclear weapons through the Manhattan Project, used against Japan in 1945.", year: 1945 },
+    { question: "What was the name of the plan to rebuild Europe after World War II?", options: ["A) Truman Doctrine", "B) Marshall Plan", "C) Roosevelt Plan", "D) Churchill Accord"], answer: "B) Marshall Plan", explanation: "The Marshall Plan provided over $12 billion in economic aid to rebuild Western European economies after WWII.", year: 1948 },
+    { question: "In which city was Martin Luther King Jr. assassinated?", options: ["A) Birmingham", "B) Atlanta", "C) Memphis", "D) Montgomery"], answer: "C) Memphis", explanation: "MLK was assassinated at the Lorraine Motel in Memphis, Tennessee on April 4, 1968.", year: 1968 },
+    { question: "What was the first permanent English settlement in America?", options: ["A) Plymouth", "B) Roanoke", "C) Jamestown", "D) Boston"], answer: "C) Jamestown", explanation: "Jamestown, Virginia, was founded in 1607 and became the first permanent English settlement in America.", year: 1607 },
+    { question: "Who invented the printing press with movable type?", options: ["A) Leonardo da Vinci", "B) Johannes Gutenberg", "C) Galileo Galilei", "D) Isaac Newton"], answer: "B) Johannes Gutenberg", explanation: "Gutenberg invented the printing press around 1440, revolutionizing the spread of information in Europe.", year: 1440 },
+    { question: "Which empire controlled most of the Indian subcontinent from the 16th to 19th centuries?", options: ["A) British Empire", "B) Ottoman Empire", "C) Mughal Empire", "D) Mongol Empire"], answer: "C) Mughal Empire", explanation: "The Mughal Empire ruled much of South Asia from 1526 to 1857, known for art, architecture, and culture.", year: 1600 },
+    { question: "What was the name of the ship Charles Darwin sailed on during his voyage?", options: ["A) HMS Victory", "B) HMS Endeavour", "C) HMS Beagle", "D) HMS Bounty"], answer: "C) HMS Beagle", explanation: "Darwin's five-year voyage on HMS Beagle provided observations that led to his theory of evolution.", year: 1835 },
+    { question: "Which US president ordered the atomic bombing of Japan?", options: ["A) FDR", "B) Eisenhower", "C) Truman", "D) Kennedy"], answer: "C) Truman", explanation: "President Truman authorized the use of atomic bombs on Hiroshima and Nagasaki in August 1945.", year: 1945 },
+    { question: "What year was the United Nations founded?", options: ["A) 1943", "B) 1945", "C) 1947", "D) 1950"], answer: "B) 1945", explanation: "The UN was founded on October 24, 1945, after World War II to maintain international peace.", year: 1945 },
+    { question: "The Aztec Empire was conquered by which Spanish explorer?", options: ["A) Francisco Pizarro", "B) Hernan Cortes", "C) Vasco de Balboa", "D) Juan Ponce de Leon"], answer: "B) Hernan Cortes", explanation: "Cortes conquered the Aztec Empire between 1519 and 1521 with a combination of alliances and military force.", year: 1521 },
+    { question: "Which Apollo mission was the first to orbit the Moon?", options: ["A) Apollo 8", "B) Apollo 10", "C) Apollo 11", "D) Apollo 13"], answer: "A) Apollo 8", explanation: "Apollo 8 in December 1968 was the first crewed spacecraft to orbit the Moon, sending back famous Earthrise photos.", year: 1968 },
+    { question: "In what year did the Soviet Union dissolve?", options: ["A) 1989", "B) 1990", "C) 1991", "D) 1992"], answer: "C) 1991", explanation: "The Soviet Union officially dissolved on December 25, 1991, ending the Cold War.", year: 1991 },
+    { question: "Who was the first female prime minister of the United Kingdom?", options: ["A) Theresa May", "B) Margaret Thatcher", "C) Angela Merkel", "D) Indira Gandhi"], answer: "B) Margaret Thatcher", explanation: "Margaret Thatcher served as UK Prime Minister from 1979 to 1990, nicknamed 'The Iron Lady.'", year: 1979 },
+    { question: "What ancient structure did Hadrian build across northern Britain?", options: ["A) Offa's Dyke", "B) Antonine Wall", "C) Hadrian's Wall", "D) Roman Road"], answer: "C) Hadrian's Wall", explanation: "Hadrian's Wall was built around 122 AD to defend Roman Britain from northern tribes.", year: 122 },
+    { question: "Which disease killed an estimated 50-100 million people in 1918?", options: ["A) Bubonic plague", "B) Cholera", "C) Spanish flu", "D) Typhoid"], answer: "C) Spanish flu", explanation: "The 1918 influenza pandemic infected 500 million people and killed more than WWI.", year: 1918 },
+  ],
+  "science": [
+    { question: "What is the powerhouse of the cell?", options: ["A) Nucleus", "B) Ribosome", "C) Mitochondria", "D) Endoplasmic reticulum"], answer: "C) Mitochondria", explanation: "Mitochondria generate most of the cell's ATP through oxidative phosphorylation.", year: 1960 },
+    { question: "What planet has the most moons?", options: ["A) Jupiter", "B) Saturn", "C) Uranus", "D) Neptune"], answer: "B) Saturn", explanation: "Saturn has over 140 confirmed moons, more than any other planet.", year: 2023 },
+    { question: "What element does 'O' represent on the periodic table?", options: ["A) Osmium", "B) Oganesson", "C) Oxygen", "D) Gold"], answer: "C) Oxygen", explanation: "Oxygen has atomic number 8 and makes up about 21% of Earth's atmosphere.", year: 1900 },
+    { question: "What is the speed of light approximately?", options: ["A) 300,000 km/s", "B) 150,000 km/s", "C) 500,000 km/s", "D) 1,000,000 km/s"], answer: "A) 300,000 km/s", explanation: "Light travels at approximately 299,792 km/s in a vacuum.", year: 1905 },
+    { question: "Which scientist proposed the theory of general relativity?", options: ["A) Isaac Newton", "B) Niels Bohr", "C) Albert Einstein", "D) Max Planck"], answer: "C) Albert Einstein", explanation: "Einstein published his theory of general relativity in 1915.", year: 1915 },
+    { question: "What gas do plants primarily absorb from the atmosphere?", options: ["A) Oxygen", "B) Nitrogen", "C) Carbon dioxide", "D) Hydrogen"], answer: "C) Carbon dioxide", explanation: "Plants absorb CO2 during photosynthesis, converting it into glucose and oxygen.", year: 1900 },
+    { question: "How many bones are in the adult human body?", options: ["A) 186", "B) 206", "C) 226", "D) 256"], answer: "B) 206", explanation: "Adults have 206 bones, though babies are born with around 270 that fuse over time.", year: 1900 },
+    { question: "What is the chemical formula for table salt?", options: ["A) NaO", "B) KCl", "C) NaCl", "D) CaCl2"], answer: "C) NaCl", explanation: "Table salt is sodium chloride, an ionic compound of sodium and chlorine.", year: 1900 },
+    { question: "Which planet is known as the Red Planet?", options: ["A) Venus", "B) Mars", "C) Jupiter", "D) Mercury"], answer: "B) Mars", explanation: "Mars appears red due to iron oxide on its surface.", year: 1900 },
+    { question: "What particle carries a positive charge in an atom?", options: ["A) Electron", "B) Neutron", "C) Proton", "D) Photon"], answer: "C) Proton", explanation: "Protons reside in the nucleus and carry a positive charge.", year: 1920 },
+    { question: "What phenomenon causes the Northern Lights?", options: ["A) Solar eclipses", "B) Charged particles from the sun", "C) Moonlight refraction", "D) Volcanic gases"], answer: "B) Charged particles from the sun", explanation: "The aurora borealis occurs when solar wind particles collide with gases in Earth's atmosphere.", year: 1950 },
+    { question: "What is the largest organ of the human body?", options: ["A) Liver", "B) Brain", "C) Lungs", "D) Skin"], answer: "D) Skin", explanation: "The skin covers about 20 square feet on an average adult.", year: 1900 },
+    { question: "Which force keeps planets in orbit around the Sun?", options: ["A) Electromagnetic force", "B) Nuclear force", "C) Gravity", "D) Friction"], answer: "C) Gravity", explanation: "Gravity is the attractive force between masses, keeping celestial bodies in orbit.", year: 1900 },
+    { question: "What did Watson and Crick discover the structure of in 1953?", options: ["A) Proteins", "B) RNA", "C) DNA", "D) Enzymes"], answer: "C) DNA", explanation: "Watson and Crick's double helix model of DNA in 1953 was a landmark in molecular biology.", year: 1953 },
+    { question: "What is the hardest natural substance on Earth?", options: ["A) Quartz", "B) Topaz", "C) Diamond", "D) Corundum"], answer: "C) Diamond", explanation: "Diamond scores a 10 on the Mohs hardness scale.", year: 1900 },
+    { question: "How many elements are in the periodic table?", options: ["A) 108", "B) 118", "C) 128", "D) 138"], answer: "B) 118", explanation: "The periodic table currently contains 118 confirmed elements.", year: 2016 },
+    { question: "What planet is closest in size to Earth?", options: ["A) Mercury", "B) Mars", "C) Venus", "D) Uranus"], answer: "C) Venus", explanation: "Venus is nearly the same size as Earth, with a diameter about 95% of Earth's.", year: 1900 },
+    { question: "What is the most abundant gas in Earth's atmosphere?", options: ["A) Oxygen", "B) Carbon dioxide", "C) Nitrogen", "D) Argon"], answer: "C) Nitrogen", explanation: "Nitrogen makes up about 78% of Earth's atmosphere.", year: 1900 },
+    { question: "What unit measures the frequency of sound waves?", options: ["A) Decibel", "B) Hertz", "C) Watt", "D) Pascal"], answer: "B) Hertz", explanation: "Hertz (Hz) measures the number of cycles per second of a wave.", year: 1930 },
+    { question: "What is the chemical symbol for gold?", options: ["A) Go", "B) Gd", "C) Au", "D) Ag"], answer: "C) Au", explanation: "Gold's symbol Au comes from the Latin word 'aurum.'", year: 1900 },
+    { question: "The human genome contains approximately how many genes?", options: ["A) 2,000", "B) 10,000", "C) 20,000", "D) 100,000"], answer: "C) 20,000", explanation: "The human genome contains roughly 20,000-25,000 protein-coding genes.", year: 2003 },
+    { question: "What type of wave is used in MRI machines?", options: ["A) X-rays", "B) Radio waves", "C) Infrared waves", "D) Gamma rays"], answer: "B) Radio waves", explanation: "MRI uses radio waves and magnetic fields to create detailed images of soft tissue.", year: 1980 },
+    { question: "How many chambers does the human heart have?", options: ["A) 2", "B) 3", "C) 4", "D) 5"], answer: "C) 4", explanation: "The heart has four chambers: two atria and two ventricles.", year: 1900 },
+    { question: "What is the name of the first cloned mammal?", options: ["A) Cleo", "B) Dolly", "C) Sally", "D) Mary"], answer: "B) Dolly", explanation: "Dolly the sheep was cloned in 1996 at the Roslin Institute in Scotland.", year: 1996 },
+    { question: "What is absolute zero in Celsius?", options: ["A) -100\u00b0C", "B) -173\u00b0C", "C) -273\u00b0C", "D) -373\u00b0C"], answer: "C) -273\u00b0C", explanation: "Absolute zero (-273.15\u00b0C or 0 Kelvin) is the lowest possible temperature.", year: 1900 },
+    { question: "Which planet rotates on its side, with an axial tilt of about 98 degrees?", options: ["A) Neptune", "B) Saturn", "C) Uranus", "D) Jupiter"], answer: "C) Uranus", explanation: "Uranus's extreme axial tilt means its poles experience 42-year-long days and nights.", year: 1900 },
+    { question: "What is photosynthesis' primary energy source?", options: ["A) Water", "B) Carbon dioxide", "C) Sunlight", "D) Chlorophyll"], answer: "C) Sunlight", explanation: "Plants use sunlight to convert CO2 and water into glucose and oxygen.", year: 1900 },
+    { question: "What do we call the process by which a caterpillar becomes a butterfly?", options: ["A) Fission", "B) Mitosis", "C) Metamorphosis", "D) Molting"], answer: "C) Metamorphosis", explanation: "Metamorphosis involves the complete transformation of a larva into an adult insect inside a chrysalis.", year: 1900 },
+    { question: "What is the name of the force that opposes the relative motion of surfaces?", options: ["A) Gravity", "B) Friction", "C) Tension", "D) Normal force"], answer: "B) Friction", explanation: "Friction is the force resisting motion between surfaces in contact.", year: 1900 },
+    { question: "Which subatomic particle was discovered by Ernest Rutherford?", options: ["A) Electron", "B) Photon", "C) Proton", "D) Neutron"], answer: "C) Proton", explanation: "Rutherford discovered the proton in 1917 during nuclear bombardment experiments.", year: 1917 },
+    { question: "What is the name of the galaxy containing our solar system?", options: ["A) Andromeda", "B) Milky Way", "C) Sombrero", "D) Triangulum"], answer: "B) Milky Way", explanation: "The Milky Way galaxy contains our solar system and is estimated to have 100-400 billion stars.", year: 1900 },
+    { question: "What is the study of fossils called?", options: ["A) Archaeology", "B) Geology", "C) Paleontology", "D) Mineralogy"], answer: "C) Paleontology", explanation: "Paleontology studies the history of life on Earth through the fossil record.", year: 1900 },
+    { question: "What organ produces insulin in the human body?", options: ["A) Liver", "B) Kidney", "C) Pancreas", "D) Gallbladder"], answer: "C) Pancreas", explanation: "The pancreas produces insulin to regulate blood sugar levels.", year: 1900 },
+    { question: "What is the term for the bending of light as it passes through a prism?", options: ["A) Reflection", "B) Diffraction", "C) Refraction", "D) Dispersion"], answer: "D) Dispersion", explanation: "A prism disperses white light into a spectrum of colors by refracting different wavelengths at different angles.", year: 1900 },
+    { question: "How long does it take light from the Sun to reach Earth?", options: ["A) About 30 seconds", "B) About 8 minutes", "C) About 1 hour", "D) About 1 day"], answer: "B) About 8 minutes", explanation: "Light travels 93 million miles from the Sun to Earth in about 8 minutes and 20 seconds.", year: 1900 },
+    { question: "What is the most common blood type?", options: ["A) A+", "B) B+", "C) AB+", "D) O+"], answer: "D) O+", explanation: "O+ is the most common blood type, found in about 38% of the population.", year: 1900 },
+    { question: "What is the atomic number of carbon?", options: ["A) 4", "B) 6", "C) 8", "D) 12"], answer: "B) 6", explanation: "Carbon has 6 protons in its nucleus, giving it atomic number 6.", year: 1900 },
+    { question: "What are the only two elements that are liquid at room temperature?", options: ["A) Mercury and Bromine", "B) Mercury and Gallium", "C) Bromine and Cesium", "D) Water and Alcohol"], answer: "A) Mercury and Bromine", explanation: "Mercury and bromine are the only elements that exist as liquids at standard room temperature (25\u00b0C).", year: 1900 },
+    { question: "What is the SI unit of electrical resistance?", options: ["A) Volt", "B) Ampere", "C) Watt", "D) Ohm"], answer: "D) Ohm", explanation: "The ohm (symbol: \u03a9) measures electrical resistance, named after physicist Georg Ohm.", year: 1900 },
+    { question: "What is the name of the protein that carries oxygen in red blood cells?", options: ["A) Melanin", "B) Hemoglobin", "C) Collagen", "D) Keratin"], answer: "B) Hemoglobin", explanation: "Hemoglobin is the iron-containing protein in red blood cells that binds and transports oxygen.", year: 1900 },
+    { question: "How many planets are in our solar system?", options: ["A) 7", "B) 8", "C) 9", "D) 10"], answer: "B) 8", explanation: "Following Pluto's reclassification as a dwarf planet in 2006, our solar system has 8 planets.", year: 2006 },
+    { question: "What is the name of the boundary between Earth's crust and mantle?", options: ["A) Conrad discontinuity", "B) Gutenberg discontinuity", "C) Mohorovicic discontinuity", "D) Lehmann discontinuity"], answer: "C) Mohorovicic discontinuity", explanation: "The Moho, discovered in 1909, marks the boundary between Earth's crust and mantle.", year: 1909 },
+    { question: "What is the most powerful telescope launched by NASA in 2021?", options: ["A) Hubble", "B) Spitzer", "C) Kepler", "D) James Webb"], answer: "D) James Webb", explanation: "The James Webb Space Telescope launched in December 2021 and can see further back in time than any previous telescope.", year: 2021 },
+    { question: "What percentage of the human body is water?", options: ["A) 40-50%", "B) 50-60%", "C) 60-70%", "D) 70-80%"], answer: "C) 60-70%", explanation: "The human body is approximately 60% water, which varies by age, sex, and body composition.", year: 1900 },
+    { question: "What is the name for a group of stars that form a recognizable pattern?", options: ["A) Galaxy", "B) Nebula", "C) Constellation", "D) Cluster"], answer: "C) Constellation", explanation: "There are 88 officially recognized constellations mapped by the International Astronomical Union.", year: 1900 },
+    { question: "What is the term for the conversion of a solid directly into a gas?", options: ["A) Evaporation", "B) Sublimation", "C) Condensation", "D) Deposition"], answer: "B) Sublimation", explanation: "Sublimation skips the liquid phase \u2014 dry ice (solid CO2) is a classic example.", year: 1900 },
+    { question: "Which vitamin is produced when skin is exposed to sunlight?", options: ["A) Vitamin A", "B) Vitamin B12", "C) Vitamin C", "D) Vitamin D"], answer: "D) Vitamin D", explanation: "The skin produces vitamin D when exposed to UVB radiation from sunlight.", year: 1900 },
+    { question: "What is the chemical formula for water?", options: ["A) HO2", "B) H2O2", "C) H2O", "D) H3O"], answer: "C) H2O", explanation: "Water is composed of two hydrogen atoms and one oxygen atom.", year: 1900 },
+    { question: "What is the closest star to Earth after the Sun?", options: ["A) Sirius", "B) Betelgeuse", "C) Proxima Centauri", "D) Vega"], answer: "C) Proxima Centauri", explanation: "Proxima Centauri is about 4.24 light-years from Earth, part of the Alpha Centauri system.", year: 1900 },
+    { question: "What is the process by which cells divide to create identical copies?", options: ["A) Meiosis", "B) Mitosis", "C) Osmosis", "D) Fission"], answer: "B) Mitosis", explanation: "Mitosis is cell division that produces two genetically identical daughter cells.", year: 1900 },
+    { question: "Which gas is most responsible for the greenhouse effect?", options: ["A) Oxygen", "B) Methane", "C) Carbon dioxide", "D) Nitrogen"], answer: "C) Carbon dioxide", explanation: "While water vapor is most abundant, CO2 is the primary driver of human-caused climate change.", year: 1990 },
+    { question: "What is the name of the genetic code that was fully sequenced in 2003?", options: ["A) Human Genome", "B) Human Proteome", "C) Human Transcriptome", "D) Human Epigenome"], answer: "A) Human Genome", explanation: "The Human Genome Project completed sequencing all 3 billion base pairs of human DNA in 2003.", year: 2003 },
+    { question: "What is the term for animals that eat both plants and meat?", options: ["A) Carnivores", "B) Herbivores", "C) Omnivores", "D) Insectivores"], answer: "C) Omnivores", explanation: "Omnivores can digest both plant and animal matter; humans are omnivores.", year: 1900 },
+    { question: "What is Newton's first law of motion also called?", options: ["A) Law of Gravity", "B) Law of Inertia", "C) Law of Action", "D) Law of Momentum"], answer: "B) Law of Inertia", explanation: "Newton's first law states that an object remains at rest or in motion unless acted upon by a force.", year: 1687 },
+    { question: "What is the average distance from Earth to the Moon?", options: ["A) 184,000 miles", "B) 238,000 miles", "C) 300,000 miles", "D) 400,000 miles"], answer: "B) 238,000 miles", explanation: "The Moon is about 238,855 miles (384,400 km) from Earth on average.", year: 1900 },
+    { question: "What is the pH of pure water?", options: ["A) 5", "B) 6", "C) 7", "D) 8"], answer: "C) 7", explanation: "Pure water has a neutral pH of 7, meaning it is neither acidic nor basic.", year: 1900 },
+    { question: "What type of rock is formed from cooled lava?", options: ["A) Sedimentary", "B) Metamorphic", "C) Igneous", "D) Composite"], answer: "C) Igneous", explanation: "Igneous rocks form when magma or lava cools and solidifies; granite and basalt are examples.", year: 1900 },
+    { question: "What is the name for the outermost layer of the Earth?", options: ["A) Mantle", "B) Core", "C) Crust", "D) Lithosphere"], answer: "C) Crust", explanation: "Earth's crust is the thin outermost layer, ranging from 5 km under oceans to 70 km under mountains.", year: 1900 },
+    { question: "How many pairs of chromosomes do humans have?", options: ["A) 21", "B) 23", "C) 25", "D) 46"], answer: "B) 23", explanation: "Humans have 23 pairs of chromosomes (46 total), including the sex chromosomes XX or XY.", year: 1956 },
+    { question: "What does DNA stand for?", options: ["A) Deoxyribonucleic Acid", "B) Dinitrogen Acid", "C) Deoxyribose Nitrogen Allele", "D) Double Nucleotide Assembly"], answer: "A) Deoxyribonucleic Acid", explanation: "DNA (deoxyribonucleic acid) is the molecule that carries genetic instructions for life.", year: 1953 },
+    { question: "What is the name of the force that an object exerts on a surface due to gravity?", options: ["A) Tension", "B) Normal force", "C) Weight", "D) Buoyancy"], answer: "C) Weight", explanation: "Weight is the force of gravity acting on an object's mass, measured in Newtons.", year: 1900 },
+    { question: "What kind of animal is a Komodo dragon?", options: ["A) Snake", "B) Crocodile", "C) Lizard", "D) Salamander"], answer: "C) Lizard", explanation: "The Komodo dragon is the world's largest living lizard, native to Indonesian islands.", year: 1900 },
+  ],
+  "pop-culture": [
+    { question: "What is the name of the fictional country in 'Black Panther'?", options: ["A) Zamunda", "B) Wakanda", "C) Genovia", "D) Latveria"], answer: "B) Wakanda", explanation: "Wakanda is the technologically advanced African nation in Marvel's Black Panther franchise.", year: 2018 },
+    { question: "Which reality TV show features contestants competing for a million dollars on an island?", options: ["A) Big Brother", "B) The Amazing Race", "C) Survivor", "D) Love Island"], answer: "C) Survivor", explanation: "Survivor premiered in 2000 and became one of the longest-running reality shows.", year: 2000 },
+    { question: "What toy was the must-have holiday gift in 1996?", options: ["A) Furby", "B) Tickle Me Elmo", "C) Tamagotchi", "D) Beanie Babies"], answer: "B) Tickle Me Elmo", explanation: "Tickle Me Elmo caused shopping frenzies in 1996.", year: 1996 },
+    { question: "Which K-pop group released the hit 'Dynamite'?", options: ["A) BLACKPINK", "B) EXO", "C) BTS", "D) TWICE"], answer: "C) BTS", explanation: "BTS released 'Dynamite' in 2020, their first all-English single which topped the Billboard Hot 100.", year: 2020 },
+    { question: "What was the name of the viral dress debate of 2015?", options: ["A) #TheDress", "B) #DressGate", "C) #ColorWars", "D) #WhatColor"], answer: "A) #TheDress", explanation: "#TheDress went viral in February 2015, sparking a massive debate about color perception.", year: 2015 },
+    { question: "What social media platform is known for disappearing photos?", options: ["A) Instagram", "B) Twitter", "C) Snapchat", "D) TikTok"], answer: "C) Snapchat", explanation: "Snapchat launched in 2011 with photos that disappear after being viewed.", year: 2011 },
+    { question: "What mobile game had players walking around catching virtual creatures in 2016?", options: ["A) Candy Crush", "B) Angry Birds", "C) Pokemon GO", "D) Clash of Clans"], answer: "C) Pokemon GO", explanation: "Pokemon GO used augmented reality and became a worldwide sensation in summer 2016.", year: 2016 },
+    { question: "Which K-pop group made history as the first to top the Billboard Hot 100?", options: ["A) BLACKPINK", "B) BTS", "C) EXO", "D) Girls Generation"], answer: "B) BTS", explanation: "BTS became the first K-pop act to reach number one on the Billboard Hot 100.", year: 2020 },
+    { question: "What celebrity couple was dubbed 'Bennifer' in the early 2000s?", options: ["A) Ben Stiller & Jennifer Love Hewitt", "B) Ben Affleck & Jennifer Aniston", "C) Ben Affleck & Jennifer Lopez", "D) Ben Kingsley & Jennifer Lawrence"], answer: "C) Ben Affleck & Jennifer Lopez", explanation: "Ben Affleck and Jennifer Lopez were dubbed 'Bennifer' and reunited romantically in 2021.", year: 2002 },
+    { question: "What handheld virtual pet toy became a 1990s craze?", options: ["A) Furby", "B) Tamagotchi", "C) Digimon", "D) Game Boy"], answer: "B) Tamagotchi", explanation: "Tamagotchi launched in 1996 in Japan and sold over 82 million units worldwide.", year: 1997 },
+    { question: "What streaming service is known for producing 'Squid Game'?", options: ["A) Hulu", "B) Amazon Prime", "C) Disney+", "D) Netflix"], answer: "D) Netflix", explanation: "Squid Game became Netflix's most-watched series ever after its September 2021 release.", year: 2021 },
+    { question: "What was the name of the 'Ice Bucket Challenge' charity that went viral in 2014?", options: ["A) MS Society", "B) Cancer Research", "C) ALS Association", "D) Alzheimer's Research"], answer: "C) ALS Association", explanation: "The Ice Bucket Challenge in 2014 raised over $115 million for ALS research.", year: 2014 },
+    { question: "Which fashion designer's death in 1997 shocked the world?", options: ["A) Coco Chanel", "B) Yves Saint Laurent", "C) Gianni Versace", "D) Christian Dior"], answer: "C) Gianni Versace", explanation: "Gianni Versace was shot outside his Miami Beach home on July 15, 1997.", year: 1997 },
+    { question: "What show popularized the phrase 'You're fired!'?", options: ["A) Shark Tank", "B) The Apprentice", "C) Dragon's Den", "D) Undercover Boss"], answer: "B) The Apprentice", explanation: "Donald Trump popularized 'You're fired!' as host of The Apprentice starting in 2004.", year: 2004 },
+    { question: "What video game character is known for saying 'It's-a me, Mario!'?", options: ["A) Link", "B) Donkey Kong", "C) Mario", "D) Kirby"], answer: "C) Mario", explanation: "Mario, Nintendo's iconic plumber mascot, has appeared in over 200 games.", year: 1985 },
+    { question: "Which Kardashian is the most followed on Instagram?", options: ["A) Kim", "B) Kylie", "C) Khloe", "D) Kourtney"], answer: "B) Kylie", explanation: "Kylie Jenner has surpassed Kim Kardashian to become the most followed Kardashian-Jenner on Instagram.", year: 2019 },
+    { question: "What term was coined in 2013 to describe overly emotional male fans?", options: ["A) Fanboys", "B) Stans", "C) Simps", "D) Stans"], answer: "B) Stans", explanation: "'Stan' comes from Eminem's 2000 song about an obsessive fan, and became mainstream slang around 2013.", year: 2013 },
+    { question: "What fashion trend involved wearing extremely low-rise jeans in the 2000s?", options: ["A) Flared jeans", "B) Mom jeans", "C) Low-rise jeans", "D) Cargo pants"], answer: "C) Low-rise jeans", explanation: "Low-rise jeans dominated fashion in the early 2000s, famously worn by Britney Spears and Paris Hilton.", year: 2003 },
+    { question: "What TV talent show launched the careers of Kelly Clarkson and Carrie Underwood?", options: ["A) The Voice", "B) America's Got Talent", "C) American Idol", "D) X Factor"], answer: "C) American Idol", explanation: "American Idol premiered in 2002 and Kelly Clarkson won its first season.", year: 2002 },
+    { question: "What children's show featured characters called Teletubbies?", options: ["A) In the Night Garden", "B) Teletubbies", "C) Boohbah", "D) Tikkabilla"], answer: "B) Teletubbies", explanation: "Teletubbies premiered on BBC in 1997 and became a global children's television phenomenon.", year: 1997 },
+    { question: "What phrase went viral when a woman asked Amazon's Alexa to play music in 2016?", options: ["A) Hey Siri", "B) OK Google", "C) Alexa, play", "D) Hey Cortana"], answer: "C) Alexa, play", explanation: "Amazon's Alexa became a pop culture phenomenon after its 2014 launch, with 'Alexa, play...' becoming ubiquitous.", year: 2016 },
+    { question: "Which actress played Katniss Everdeen in The Hunger Games films?", options: ["A) Emma Watson", "B) Shailene Woodley", "C) Jennifer Lawrence", "D) Kristen Stewart"], answer: "C) Jennifer Lawrence", explanation: "Jennifer Lawrence played Katniss Everdeen across four Hunger Games films from 2012 to 2015.", year: 2012 },
+    { question: "What internet slang term means to laugh out loud?", options: ["A) SMH", "B) TBT", "C) LOL", "D) BRB"], answer: "C) LOL", explanation: "LOL (laughing out loud) is one of the most widely used internet abbreviations, dating back to the 1980s online chat rooms.", year: 1990 },
+    { question: "Which meme features a Shiba Inu dog with colored text?", options: ["A) Grumpy Cat", "B) Doge", "C) Nyan Cat", "D) Keyboard Cat"], answer: "B) Doge", explanation: "The Doge meme features a Shiba Inu named Kabosu and became a massive internet phenomenon in 2013.", year: 2013 },
+    { question: "What YouTube video became the first to reach 1 billion views?", options: ["A) Baby", "B) Gangnam Style", "C) Despacito", "D) Shape of You"], answer: "B) Gangnam Style", explanation: "PSY's Gangnam Style became the first video to reach 1 billion views on YouTube in 2012.", year: 2012 },
+    { question: "What technology company created the iPod?", options: ["A) Microsoft", "B) Sony", "C) Apple", "D) Samsung"], answer: "C) Apple", explanation: "Apple introduced the iPod in October 2001, revolutionizing how people listen to music.", year: 2001 },
+    { question: "Which 2003 film features the line 'You can't sit with us!'?", options: ["A) Clueless", "B) Legally Blonde", "C) Mean Girls", "D) Bring It On"], answer: "C) Mean Girls", explanation: "Mean Girls (2004, written by Tina Fey) became a cultural touchstone with countless quotable lines.", year: 2004 },
+    { question: "What was the first video uploaded to YouTube?", options: ["A) Charlie Bit My Finger", "B) Me at the zoo", "C) Chocolate Rain", "D) Evolution of Dance"], answer: "B) Me at the zoo", explanation: "'Me at the zoo' was uploaded by YouTube co-founder Jawed Karim on April 23, 2005.", year: 2005 },
+    { question: "What 1990s TV show featured a group of friends in New York City?", options: ["A) Seinfeld", "B) Friends", "C) How I Met Your Mother", "D) Will & Grace"], answer: "B) Friends", explanation: "Friends ran from 1994 to 2004, following six friends living in New York City.", year: 1994 },
+    { question: "Which superhero movie first featured a Black lead character in a major MCU film?", options: ["A) Luke Cage", "B) Black Panther", "C) Falcon and the Winter Soldier", "D) War Machine"], answer: "B) Black Panther", explanation: "Black Panther (2018) was the first MCU film with a Black lead and was a massive cultural event.", year: 2018 },
+    { question: "What Nintendo game console launched in 2017 can be used as both a home and portable console?", options: ["A) Wii U", "B) Game Boy", "C) Nintendo 3DS", "D) Nintendo Switch"], answer: "D) Nintendo Switch", explanation: "The Nintendo Switch launched in March 2017 and became one of the best-selling consoles of all time.", year: 2017 },
+    { question: "What popular hairstyle trend in the 1980s involved teasing hair to make it very large?", options: ["A) The Mullet", "B) The Mohawk", "C) Big Hair / Perms", "D) Cornrows"], answer: "C) Big Hair / Perms", explanation: "Voluminous, permed, or teased hair was the defining hairstyle of the 1980s, seen on everyone from rock stars to TV hosts.", year: 1985 },
+    { question: "Which singer performed the halftime show at the Super Bowl in 2013?", options: ["A) Beyonce", "B) Katy Perry", "C) Lady Gaga", "D) Madonna"], answer: "A) Beyonce", explanation: "Beyonce's 2013 Super Bowl halftime show is widely considered one of the greatest ever.", year: 2013 },
+    { question: "What 1990s toy involved a small alien creature that 'hatched' from an egg?", options: ["A) Tamagotchi", "B) Furby", "C) Giga Pet", "D) Nano Baby"], answer: "B) Furby", explanation: "Furby launched in 1998 and became one of the must-have toys of the late 1990s.", year: 1998 },
+    { question: "What Beyonce album featured the concept of a 'visual album' released without prior notice?", options: ["A) 4", "B) Renaissance", "C) Lemonade", "D) Beyonce"], answer: "D) Beyonce", explanation: "Beyonce surprised the world by releasing her self-titled album without any promotion on December 13, 2013.", year: 2013 },
+    { question: "What TV series featuring zombies became a massive hit on AMC?", options: ["A) Fear the Walking Dead", "B) The Walking Dead", "C) Z Nation", "D) iZombie"], answer: "B) The Walking Dead", explanation: "The Walking Dead premiered in 2010 and became one of cable TV's most watched dramas.", year: 2010 },
+    { question: "What is the name of Harry Styles' first solo single?", options: ["A) Golden", "B) Watermelon Sugar", "C) Sign of the Times", "D) Adore You"], answer: "C) Sign of the Times", explanation: "Harry Styles released 'Sign of the Times' in 2017 as his debut solo single after leaving One Direction.", year: 2017 },
+    { question: "What was the top-selling video game of all time until it was overtaken?", options: ["A) Grand Theft Auto V", "B) Tetris", "C) Minecraft", "D) Super Mario Bros"], answer: "C) Minecraft", explanation: "Minecraft surpassed Tetris in 2019 to become the best-selling video game of all time with over 238 million copies.", year: 2019 },
+    { question: "What 2012 song sparked a worldwide dance craze known as 'The Harlem Shake'?", options: ["A) Gangnam Style", "B) Harlem Shake", "C) Blurred Lines", "D) Call Me Maybe"], answer: "B) Harlem Shake", explanation: "The Harlem Shake by Baauer sparked a viral meme where videos of people dancing wildly flooded the internet in 2013.", year: 2013 },
+    { question: "What phrase became a meme after President Obama was given a Medal of Freedom?", options: ["A) Thanks Obama", "B) Obama Out", "C) Thanks for the memories", "D) Obama Drops the Mic"], answer: "D) Obama Drops the Mic", explanation: "Obama literally dropped the mic at his final White House Correspondents Dinner in 2016, creating a viral moment.", year: 2016 },
+    { question: "Which British royal couple got married in a globally watched ceremony in 2011?", options: ["A) Harry and Meghan", "B) Charles and Camilla", "C) William and Kate", "D) Edward and Sophie"], answer: "C) William and Kate", explanation: "Prince William and Kate Middleton married on April 29, 2011, watched by an estimated 2 billion people.", year: 2011 },
+    { question: "What 1990s show featured a group of teenage witches?", options: ["A) Bewitched", "B) The Craft", "C) Sabrina the Teenage Witch", "D) Charmed"], answer: "C) Sabrina the Teenage Witch", explanation: "Sabrina the Teenage Witch ran from 1996 to 2003 and starred Melissa Joan Hart.", year: 1996 },
+    { question: "What film featured the quote 'Life is like a box of chocolates'?", options: ["A) Cast Away", "B) The Green Mile", "C) Forrest Gump", "D) Philadelphia"], answer: "C) Forrest Gump", explanation: "Tom Hanks delivered this iconic line as Forrest Gump in the 1994 Oscar-winning film.", year: 1994 },
+    { question: "Which rapper wore a bear suit on the set of 'Gold Digger'?", options: ["A) Jay-Z", "B) Kanye West", "C) Lil Wayne", "D) Drake"], answer: "B) Kanye West", explanation: "Kanye West wore a teddy bear costume in the 'Gold Digger' music video in 2005.", year: 2005 },
+    { question: "What game show involves contestants betting on the price of items?", options: ["A) Jeopardy", "B) Wheel of Fortune", "C) The Price is Right", "D) Deal or No Deal"], answer: "C) The Price is Right", explanation: "The Price Is Right has aired since 1972 and is hosted by Drew Carey.", year: 1972 },
+    { question: "What was the name of the fictional band in the movie 'School of Rock'?", options: ["A) The Electric Eels", "B) No Vacancy", "C) School of Rock", "D) The Bumblebees"], answer: "B) No Vacancy", explanation: "In School of Rock (2003), Jack Black's character forms a band called No Vacancy after renaming himself 'Mr. S.'", year: 2003 },
+    { question: "Which actor played Tony Stark / Iron Man in the Marvel Cinematic Universe?", options: ["A) Chris Evans", "B) Chris Pratt", "C) Robert Downey Jr.", "D) Mark Ruffalo"], answer: "C) Robert Downey Jr.", explanation: "Robert Downey Jr. played Tony Stark/Iron Man across 10 MCU films starting with Iron Man in 2008.", year: 2008 },
+    { question: "What viral 2020 TikTok trend involved people trying various cooking hacks with feta cheese?", options: ["A) Butter board", "B) Baked feta pasta", "C) Feta salad", "D) Cheese fondue"], answer: "B) Baked feta pasta", explanation: "Baked feta pasta went viral on TikTok in 2021, causing feta cheese to sell out across Finland.", year: 2021 },
+    { question: "What Netflix show features a group of kids in Hawkins dealing with supernatural events?", options: ["A) Dark", "B) Locke & Key", "C) Stranger Things", "D) The OA"], answer: "C) Stranger Things", explanation: "Stranger Things premiered on Netflix in 2016 and became a massive 80s nostalgia-driven hit.", year: 2016 },
+    { question: "In what year did Facebook launch to the general public (not just college students)?", options: ["A) 2004", "B) 2005", "C) 2006", "D) 2007"], answer: "C) 2006", explanation: "Facebook opened to anyone over 13 with an email address in September 2006.", year: 2006 },
+    { question: "What phrase did Disney's Elsa popularize from the movie Frozen?", options: ["A) Let It Snow", "B) Let It Go", "C) True Love's Kiss", "D) Into the Unknown"], answer: "B) Let It Go", explanation: "'Let It Go,' performed by Idina Menzel, became one of the most recognized Disney songs ever after Frozen's 2013 release.", year: 2013 },
+    { question: "What is the name of the social media platform where users post in 280 characters?", options: ["A) Instagram", "B) Facebook", "C) Twitter/X", "D) Reddit"], answer: "C) Twitter/X", explanation: "Twitter (rebranded as X in 2023) doubled its character limit from 140 to 280 in 2017.", year: 2017 },
+    { question: "What animated show follows a dysfunctional family named Belcher who run a burger restaurant?", options: ["A) Family Guy", "B) Archer", "C) Bob's Burgers", "D) American Dad"], answer: "C) Bob's Burgers", explanation: "Bob's Burgers has aired on Fox since 2011 and won multiple Emmy Awards.", year: 2011 },
+    { question: "What was the name of the popular dance originated by Soulja Boy in 2007?", options: ["A) The Dougie", "B) The Crank That", "C) The Nae Nae", "D) The Wobble"], answer: "B) The Crank That", explanation: "'Crank That (Soulja Boy)' by Soulja Boy was a massive hit in 2007, with a viral accompanying dance.", year: 2007 },
+    { question: "Which 2014 movie broke box office records as the highest-grossing animated film at the time?", options: ["A) Toy Story 3", "B) Despicable Me 2", "C) Frozen", "D) The Lion King"], answer: "C) Frozen", explanation: "Frozen (2013) grossed over $1.27 billion worldwide to become the highest-grossing animated film at the time.", year: 2014 },
+    { question: "What is the name of Tony Hawk's signature skateboarding trick?", options: ["A) 720", "B) 900", "C) 1080", "D) McTwist"], answer: "B) 900", explanation: "Tony Hawk became the first person to land a 900 (two and a half aerial rotations) at the 1999 X Games.", year: 1999 },
+    { question: "What was the slogan of the 'Just Do It' Nike campaign?", options: ["A) Be All You Can Be", "B) Impossible is Nothing", "C) Just Do It", "D) I'm Lovin It"], answer: "C) Just Do It", explanation: "Nike's 'Just Do It' slogan launched in 1988 and became one of the most recognizable taglines in history.", year: 1988 },
+    { question: "What animated Disney movie features a character named Moana?", options: ["A) Brave", "B) Raya and the Last Dragon", "C) Moana", "D) Encanto"], answer: "C) Moana", explanation: "Moana (2016) features a Polynesian teenager who sails across the Pacific Ocean on an adventure.", year: 2016 },
+  ],
+  "sports": [
+    { question: "Which country has won the most FIFA World Cup titles?", options: ["A) Germany", "B) Argentina", "C) Italy", "D) Brazil"], answer: "D) Brazil", explanation: "Brazil has won the FIFA World Cup five times: 1958, 1962, 1970, 1994, and 2002.", year: 2002 },
+    { question: "In what sport would you perform a slam dunk?", options: ["A) Volleyball", "B) Basketball", "C) Tennis", "D) Football"], answer: "B) Basketball", explanation: "A slam dunk involves jumping and putting the ball directly through the hoop.", year: 1950 },
+    { question: "How many players are on a standard soccer team on the field?", options: ["A) 9", "B) 10", "C) 11", "D) 12"], answer: "C) 11", explanation: "Each soccer team fields 11 players including the goalkeeper.", year: 1900 },
+    { question: "Which tennis player holds the most men's Grand Slam singles titles?", options: ["A) Roger Federer", "B) Rafael Nadal", "C) Novak Djokovic", "D) Pete Sampras"], answer: "C) Novak Djokovic", explanation: "Novak Djokovic surpassed Nadal and Federer to hold the all-time record.", year: 2023 },
+    { question: "The Miracle on Ice occurred at which Winter Olympics?", options: ["A) 1976 Innsbruck", "B) 1980 Lake Placid", "C) 1984 Sarajevo", "D) 1988 Calgary"], answer: "B) 1980 Lake Placid", explanation: "The US hockey team's stunning upset of the Soviet Union at the 1980 Olympics is legendary.", year: 1980 },
+    { question: "Which boxer was known as The Greatest?", options: ["A) Mike Tyson", "B) Floyd Mayweather", "C) Muhammad Ali", "D) Joe Louis"], answer: "C) Muhammad Ali", explanation: "Muhammad Ali proclaimed himself The Greatest and is widely considered the best heavyweight of all time.", year: 1964 },
+    { question: "In which city were the first modern Olympic Games held?", options: ["A) Paris", "B) London", "C) Athens", "D) Rome"], answer: "C) Athens", explanation: "The first modern Olympics were held in Athens, Greece, in 1896.", year: 1896 },
+    { question: "Who holds the record for most goals scored in a single calendar year?", options: ["A) Cristiano Ronaldo", "B) Pele", "C) Lionel Messi", "D) Gerd Muller"], answer: "C) Lionel Messi", explanation: "Messi scored 91 goals in 2012, breaking Gerd Muller's 40-year record.", year: 2012 },
+    { question: "What sport is played at Wimbledon?", options: ["A) Cricket", "B) Golf", "C) Tennis", "D) Rugby"], answer: "C) Tennis", explanation: "Wimbledon is the oldest tennis tournament in the world, held annually since 1877.", year: 1877 },
+    { question: "Which swimmer has won the most Olympic gold medals?", options: ["A) Mark Spitz", "B) Ian Thorpe", "C) Michael Phelps", "D) Ryan Lochte"], answer: "C) Michael Phelps", explanation: "Michael Phelps holds the all-time record with 23 Olympic gold medals.", year: 2016 },
+    { question: "How many points is a touchdown worth in American football?", options: ["A) 3", "B) 6", "C) 7", "D) 8"], answer: "B) 6", explanation: "A touchdown scores 6 points, with the opportunity for an extra point or two-point conversion.", year: 1900 },
+    { question: "In baseball, how many strikes make an out?", options: ["A) 2", "B) 3", "C) 4", "D) 5"], answer: "B) 3", explanation: "Three strikes and you're out is one of baseball's most fundamental rules.", year: 1900 },
+    { question: "What is the distance of a marathon race?", options: ["A) 26.2 miles", "B) 24.6 miles", "C) 25 miles", "D) 27 miles"], answer: "A) 26.2 miles", explanation: "A marathon is 26.2 miles (42.195 km), a distance standardized at the 1908 London Olympics.", year: 1908 },
+    { question: "Which country invented the sport of basketball?", options: ["A) United Kingdom", "B) Canada", "C) United States", "D) France"], answer: "B) Canada", explanation: "Basketball was invented by Canadian James Naismith in 1891 while working in Springfield, Massachusetts.", year: 1891 },
+    { question: "How many holes are in a standard round of golf?", options: ["A) 9", "B) 12", "C) 18", "D) 24"], answer: "C) 18", explanation: "A standard round of golf consists of 18 holes, a number standardized at St Andrews in Scotland.", year: 1900 },
+    { question: "Which country has won the most Summer Olympic gold medals in history?", options: ["A) China", "B) Soviet Union", "C) United States", "D) Germany"], answer: "C) United States", explanation: "The United States leads all nations in total Olympic gold medals won at Summer Games.", year: 2020 },
+    { question: "What is the maximum score in a single game of ten-pin bowling?", options: ["A) 270", "B) 280", "C) 300", "D) 320"], answer: "C) 300", explanation: "A perfect game in bowling requires 12 consecutive strikes for a score of 300.", year: 1900 },
+    { question: "In what year did Tiger Woods win his first Masters Tournament?", options: ["A) 1995", "B) 1997", "C) 1999", "D) 2001"], answer: "B) 1997", explanation: "Tiger Woods won the 1997 Masters at age 21, finishing 18 under par.", year: 1997 },
+    { question: "How many players are on a standard basketball team on the court?", options: ["A) 4", "B) 5", "C) 6", "D) 7"], answer: "B) 5", explanation: "Five players per team play on a basketball court at a time.", year: 1900 },
+    { question: "What athlete won 4 gold medals at the 1936 Berlin Olympics?", options: ["A) Jim Thorpe", "B) Jesse Owens", "C) Carl Lewis", "D) Bob Beamon"], answer: "B) Jesse Owens", explanation: "Jesse Owens won four gold medals in Berlin, defying Nazi ideology about racial superiority.", year: 1936 },
+    { question: "Which NFL team has the most Super Bowl victories?", options: ["A) Dallas Cowboys", "B) San Francisco 49ers", "C) New England Patriots", "D) Pittsburgh Steelers"], answer: "C) New England Patriots", explanation: "The New England Patriots have won 6 Super Bowls, tied with the Pittsburgh Steelers.", year: 2019 },
+    { question: "What racquet sport uses a shuttlecock?", options: ["A) Squash", "B) Pickleball", "C) Badminton", "D) Racquetball"], answer: "C) Badminton", explanation: "Badminton uses a feathered projectile called a shuttlecock and is one of the fastest racket sports.", year: 1900 },
+    { question: "Who holds the record for most home runs in a single MLB season?", options: ["A) Babe Ruth", "B) Barry Bonds", "C) Mark McGwire", "D) Roger Maris"], answer: "B) Barry Bonds", explanation: "Barry Bonds hit 73 home runs in the 2001 season, breaking the single-season record.", year: 2001 },
+    { question: "In tennis, what does 'love' mean?", options: ["A) 1 point", "B) 15 points", "C) Zero", "D) Deuce"], answer: "C) Zero", explanation: "In tennis, 'love' means zero points, likely from the French 'l'oeuf' meaning egg (zero shape).", year: 1900 },
+    { question: "What sport takes place in a velodrome?", options: ["A) Inline skating", "B) Track cycling", "C) Speed skating", "D) BMX racing"], answer: "B) Track cycling", explanation: "A velodrome is a cycling track with banked curves used for track cycling competitions.", year: 1900 },
+    { question: "Which country hosted the 2016 Summer Olympics?", options: ["A) South Africa", "B) Argentina", "C) Brazil", "D) Colombia"], answer: "C) Brazil", explanation: "Rio de Janeiro, Brazil, hosted the 2016 Summer Olympics, the first in South America.", year: 2016 },
+    { question: "What is the name of the trophy awarded to the NBA champion?", options: ["A) Lombardi Trophy", "B) Larry O'Brien Trophy", "C) Stanley Cup", "D) Commissioner's Trophy"], answer: "B) Larry O'Brien Trophy", explanation: "The Larry O'Brien Trophy has been awarded to the NBA champion since 1984, named after a former commissioner.", year: 1984 },
+    { question: "What is the highest award in American football?", options: ["A) Heisman Trophy", "B) MVP Award", "C) Super Bowl ring", "D) Lombardi Trophy"], answer: "A) Heisman Trophy", explanation: "The Heisman Trophy is awarded annually to the most outstanding player in college football.", year: 1935 },
+    { question: "Which golfer completed the 'Tiger Slam', holding all four major titles at once?", options: ["A) Jack Nicklaus", "B) Arnold Palmer", "C) Tiger Woods", "D) Phil Mickelson"], answer: "C) Tiger Woods", explanation: "Tiger Woods held all four major golf titles simultaneously from 2000 to 2001, called the Tiger Slam.", year: 2001 },
+    { question: "In which sport would you perform a 'butterfly stroke'?", options: ["A) Gymnastics", "B) Water polo", "C) Swimming", "D) Diving"], answer: "C) Swimming", explanation: "The butterfly stroke is one of four competitive swimming strokes, requiring both arms to move symmetrically.", year: 1952 },
+    { question: "What martial art discipline is an Olympic sport that originated in Korea?", options: ["A) Karate", "B) Judo", "C) Taekwondo", "D) Aikido"], answer: "C) Taekwondo", explanation: "Taekwondo became an Olympic sport at the 2000 Sydney Games, known for its high kicks.", year: 2000 },
+    { question: "How many sets does a player need to win in a standard Wimbledon men's final?", options: ["A) 2", "B) 3", "C) 4", "D) 5"], answer: "B) 3", explanation: "Men's matches at Wimbledon are best of five sets; you need to win three to win the match.", year: 1900 },
+    { question: "Which country won the most gold medals at the 2020 Tokyo Olympics?", options: ["A) China", "B) USA", "C) Japan", "D) Great Britain"], answer: "B) USA", explanation: "The United States topped the gold medal count at the Tokyo 2020 Olympics with 39 gold medals.", year: 2021 },
+    { question: "What is the name of the annual cycling race that takes place in France?", options: ["A) Giro d'Italia", "B) Vuelta a Espana", "C) Tour de France", "D) Paris-Roubaix"], answer: "C) Tour de France", explanation: "The Tour de France has been held annually since 1903 and is one of the world's most prestigious sporting events.", year: 1903 },
+    { question: "Who scored the 'Hand of God' goal?", options: ["A) Pele", "B) Ronaldinho", "C) Diego Maradona", "D) Zinedine Zidane"], answer: "C) Diego Maradona", explanation: "Diego Maradona scored the controversial 'Hand of God' goal with his hand against England at the 1986 World Cup.", year: 1986 },
+    { question: "What sport uses the terms 'par', 'birdie', and 'eagle'?", options: ["A) Tennis", "B) Cricket", "C) Golf", "D) Badminton"], answer: "C) Golf", explanation: "In golf, par is the expected score, birdie is one under, and eagle is two under par.", year: 1900 },
+    { question: "In which sport is a 'hat trick' achieved by scoring three times in one game?", options: ["A) Basketball", "B) Football (soccer)", "C) Tennis", "D) Baseball"], answer: "B) Football (soccer)", explanation: "A hat trick in soccer means scoring three goals in one game; the term originated in cricket.", year: 1900 },
+    { question: "What ice hockey trophy is awarded to the NHL playoff champion?", options: ["A) Presidents' Trophy", "B) Hart Memorial Trophy", "C) Norris Trophy", "D) Stanley Cup"], answer: "D) Stanley Cup", explanation: "The Stanley Cup is the oldest professional sports trophy in North America, first awarded in 1893.", year: 1893 },
+    { question: "In which country did the martial art of Judo originate?", options: ["A) China", "B) Korea", "C) Japan", "D) Thailand"], answer: "C) Japan", explanation: "Judo was created in 1882 by Jigoro Kano in Japan and became an Olympic sport in 1964.", year: 1882 },
+    { question: "Who was the first athlete to run a mile in under 4 minutes?", options: ["A) Jim Ryun", "B) Roger Bannister", "C) Sebastian Coe", "D) Herb Elliott"], answer: "B) Roger Bannister", explanation: "Roger Bannister ran the first sub-4-minute mile on May 6, 1954, in 3 minutes 59.4 seconds.", year: 1954 },
+    { question: "What is the name of Brazil's most famous soccer stadium?", options: ["A) Camp Nou", "B) Wembley", "C) Maracana", "D) Azteca"], answer: "C) Maracana", explanation: "The Maracana stadium in Rio de Janeiro held over 200,000 fans at the 1950 World Cup final.", year: 1950 },
+    { question: "Which sport features the Super Bowl?", options: ["A) Baseball", "B) Basketball", "C) American Football", "D) Ice Hockey"], answer: "C) American Football", explanation: "The Super Bowl is the annual championship of the NFL, first held in 1967.", year: 1967 },
+    { question: "What US tennis player won 23 Grand Slam singles titles?", options: ["A) Steffi Graf", "B) Chris Evert", "C) Martina Navratilova", "D) Serena Williams"], answer: "D) Serena Williams", explanation: "Serena Williams won 23 Grand Slam singles titles, the most of any player in the Open Era.", year: 2017 },
+    { question: "What country is Formula 1 driver Lewis Hamilton from?", options: ["A) Germany", "B) Australia", "C) United Kingdom", "D) United States"], answer: "C) United Kingdom", explanation: "Lewis Hamilton is British and holds the record for most Formula 1 World Championship titles with 7.", year: 2020 },
+    { question: "How many players are on each side in volleyball?", options: ["A) 4", "B) 5", "C) 6", "D) 7"], answer: "C) 6", explanation: "Volleyball is played with six players per team on each side of the net.", year: 1900 },
+    { question: "What is the only country to have played in every FIFA World Cup?", options: ["A) Germany", "B) Italy", "C) Argentina", "D) Brazil"], answer: "D) Brazil", explanation: "Brazil is the only national team to have participated in every World Cup since 1930.", year: 1930 },
+    { question: "At what sporting event does the winning jockey receive a garland of roses?", options: ["A) Preakness Stakes", "B) Belmont Stakes", "C) Kentucky Derby", "D) Royal Ascot"], answer: "C) Kentucky Derby", explanation: "The Kentucky Derby is nicknamed 'The Run for the Roses' because the winning horse is draped in roses.", year: 1875 },
+    { question: "What year were women first allowed to compete in the Boston Marathon officially?", options: ["A) 1960", "B) 1967", "C) 1972", "D) 1980"], answer: "C) 1972", explanation: "Women were officially allowed to run the Boston Marathon in 1972, though Kathrine Switzer ran unofficially in 1967.", year: 1972 },
+    { question: "What is the term for a score of zero in cricket?", options: ["A) Nil", "B) Zip", "C) Duck", "D) Love"], answer: "C) Duck", explanation: "In cricket, a score of zero is called a 'duck,' from the shape of a duck's egg (0).", year: 1900 },
+    { question: "Which country has won the most Rugby World Cup titles?", options: ["A) England", "B) Australia", "C) South Africa", "D) New Zealand"], answer: "D) New Zealand", explanation: "New Zealand's All Blacks have won the Rugby World Cup three times (1987, 2011, 2015).", year: 2015 },
+    { question: "What is the fastest recorded tennis serve?", options: ["A) 155 mph", "B) 163 mph", "C) 170 mph", "D) 178 mph"], answer: "B) 163 mph", explanation: "Sam Groth of Australia recorded the fastest serve ever at 163.4 mph in 2012.", year: 2012 },
+    { question: "What position does a player called a 'quarterback' play in American football?", options: ["A) Defense", "B) Special Teams", "C) Offense", "D) All positions"], answer: "C) Offense", explanation: "The quarterback is the offensive team leader who handles the ball on most plays.", year: 1900 },
+    { question: "What were the first Olympic Games of the modern era held in what century?", options: ["A) 18th century", "B) 19th century", "C) 20th century", "D) 17th century"], answer: "B) 19th century", explanation: "The first modern Olympics were held in 1896 in Athens, near the end of the 19th century.", year: 1896 },
+    { question: "Which famous horse won the Triple Crown in 1973?", options: ["A) Man o War", "B) Citation", "C) Secretariat", "D) Seattle Slew"], answer: "C) Secretariat", explanation: "Secretariat won the Triple Crown in 1973, setting records in all three races that still stand.", year: 1973 },
+    { question: "What is the name of the award given to the Super Bowl's MVP?", options: ["A) Lombardi Award", "B) Pro Bowl MVP", "C) Pete Rozelle Trophy", "D) Heisman Trophy"], answer: "C) Pete Rozelle Trophy", explanation: "The Super Bowl MVP receives the Pete Rozelle Trophy, named after the influential NFL Commissioner.", year: 1967 },
+    { question: "In which city is Yankee Stadium located?", options: ["A) Boston", "B) Chicago", "C) Los Angeles", "D) New York"], answer: "D) New York", explanation: "Yankee Stadium is in the Bronx, New York City, home of the New York Yankees.", year: 1923 },
+  ],
+  "geography": [
+    { question: "What is the smallest country in the world by area?", options: ["A) Monaco", "B) Vatican City", "C) San Marino", "D) Liechtenstein"], answer: "B) Vatican City", explanation: "Vatican City covers just 0.17 square miles, making it the smallest independent state.", year: 1929 },
+    { question: "Which river is the longest in the world?", options: ["A) Amazon", "B) Nile", "C) Mississippi", "D) Yangtze"], answer: "B) Nile", explanation: "The Nile stretches approximately 6,650 km through northeastern Africa.", year: 1900 },
+    { question: "Mount Everest is on the border of which two countries?", options: ["A) India and China", "B) Nepal and India", "C) Nepal and China", "D) China and Pakistan"], answer: "C) Nepal and China", explanation: "Everest sits on the Nepal-Tibet (China) border, at 8,849 meters.", year: 1953 },
+    { question: "What is the capital of Australia?", options: ["A) Sydney", "B) Melbourne", "C) Canberra", "D) Brisbane"], answer: "C) Canberra", explanation: "Canberra was chosen as a compromise capital between rivals Sydney and Melbourne.", year: 1913 },
+    { question: "Which is the largest hot desert in the world?", options: ["A) Gobi", "B) Kalahari", "C) Arabian", "D) Sahara"], answer: "D) Sahara", explanation: "The Sahara covers about 9.2 million square kilometers across North Africa.", year: 1900 },
+    { question: "How many continents are there?", options: ["A) 5", "B) 6", "C) 7", "D) 8"], answer: "C) 7", explanation: "The seven continents are Africa, Antarctica, Asia, Australia, Europe, North America, and South America.", year: 1900 },
+    { question: "What country has the most natural lakes?", options: ["A) United States", "B) Russia", "C) Canada", "D) Finland"], answer: "C) Canada", explanation: "Canada has over 800,000 lakes, more than all other countries combined.", year: 1900 },
+    { question: "Which U.S. state is the largest by area?", options: ["A) Texas", "B) California", "C) Montana", "D) Alaska"], answer: "D) Alaska", explanation: "Alaska is about 663,300 square miles, more than twice the size of Texas.", year: 1959 },
+    { question: "What is the deepest point in the ocean?", options: ["A) Puerto Rico Trench", "B) Java Trench", "C) Mariana Trench", "D) Tonga Trench"], answer: "C) Mariana Trench", explanation: "The Challenger Deep in the Mariana Trench reaches nearly 11,000 meters below sea level.", year: 1960 },
+    { question: "Which country is shaped like a boot?", options: ["A) Greece", "B) Portugal", "C) Italy", "D) Croatia"], answer: "C) Italy", explanation: "Italy's iconic boot shape makes it one of the most recognizable countries on a map.", year: 1900 },
+    { question: "What is the most populated city in the world?", options: ["A) Beijing", "B) New York", "C) Tokyo", "D) Mumbai"], answer: "C) Tokyo", explanation: "The Tokyo metropolitan area has over 37 million people.", year: 2020 },
+    { question: "The Great Barrier Reef is off the coast of which country?", options: ["A) Indonesia", "B) Australia", "C) Philippines", "D) Brazil"], answer: "B) Australia", explanation: "The Great Barrier Reef stretches over 2,300 km off Australia's northeast coast.", year: 1900 },
+    { question: "Which country has the longest coastline in the world?", options: ["A) Russia", "B) Norway", "C) Canada", "D) Australia"], answer: "C) Canada", explanation: "Canada has the world's longest coastline at approximately 202,080 km, including islands.", year: 1900 },
+    { question: "What is the capital city of Japan?", options: ["A) Osaka", "B) Kyoto", "C) Tokyo", "D) Hiroshima"], answer: "C) Tokyo", explanation: "Tokyo has been Japan's capital since 1869 when Emperor Meiji relocated from Kyoto.", year: 1869 },
+    { question: "Which African country has the largest population?", options: ["A) Ethiopia", "B) Egypt", "C) Nigeria", "D) South Africa"], answer: "C) Nigeria", explanation: "Nigeria has over 220 million people, making it the most populous country in Africa.", year: 2020 },
+    { question: "What is the capital of Canada?", options: ["A) Toronto", "B) Vancouver", "C) Montreal", "D) Ottawa"], answer: "D) Ottawa", explanation: "Ottawa became Canada's capital in 1857, chosen partly because of its location on the Ontario-Quebec border.", year: 1857 },
+    { question: "Which continent is the driest on Earth?", options: ["A) Africa", "B) Australia", "C) Antarctica", "D) South America"], answer: "C) Antarctica", explanation: "Antarctica is technically the world's driest continent, receiving very little precipitation.", year: 1900 },
+    { question: "What is the largest ocean on Earth?", options: ["A) Atlantic", "B) Indian", "C) Arctic", "D) Pacific"], answer: "D) Pacific", explanation: "The Pacific Ocean covers about 165 million square km, making it larger than all land masses combined.", year: 1900 },
+    { question: "In which country would you find the Taj Mahal?", options: ["A) Pakistan", "B) Bangladesh", "C) India", "D) Nepal"], answer: "C) India", explanation: "The Taj Mahal is in Agra, India, built by Emperor Shah Jahan in memory of his wife Mumtaz.", year: 1643 },
+    { question: "What is the capital of Brazil?", options: ["A) Rio de Janeiro", "B) Sao Paulo", "C) Salvador", "D) Brasilia"], answer: "D) Brasilia", explanation: "Brasilia replaced Rio de Janeiro as Brazil's capital in 1960, purpose-built in the country's interior.", year: 1960 },
+    { question: "What river runs through Egypt?", options: ["A) Congo", "B) Niger", "C) Nile", "D) Zambezi"], answer: "C) Nile", explanation: "The Nile flows northward through Egypt and empties into the Mediterranean Sea.", year: 1900 },
+    { question: "Which sea is the saltiest in the world?", options: ["A) Red Sea", "B) Caspian Sea", "C) Dead Sea", "D) Persian Gulf"], answer: "C) Dead Sea", explanation: "The Dead Sea has a salinity of about 34%, making it nearly 10 times saltier than the ocean.", year: 1900 },
+    { question: "What is the longest mountain range in the world?", options: ["A) Himalayas", "B) Rockies", "C) Andes", "D) Alps"], answer: "C) Andes", explanation: "The Andes stretch about 7,000 km along the western coast of South America.", year: 1900 },
+    { question: "Which country is both a continent and a country?", options: ["A) Greenland", "B) New Zealand", "C) Iceland", "D) Australia"], answer: "D) Australia", explanation: "Australia is unique in being both a continent and a sovereign country.", year: 1901 },
+    { question: "What is the most densely populated country in the world?", options: ["A) Bangladesh", "B) Singapore", "C) Monaco", "D) Malta"], answer: "C) Monaco", explanation: "Monaco, with over 26,000 people per square km, is the world's most densely populated country.", year: 2020 },
+    { question: "What is the name of the world's largest rainforest?", options: ["A) Congo Rainforest", "B) Amazon Rainforest", "C) Borneo Rainforest", "D) Daintree Rainforest"], answer: "B) Amazon Rainforest", explanation: "The Amazon Rainforest spans 5.5 million square km, mostly in Brazil.", year: 1900 },
+    { question: "In which country is the ancient city of Petra located?", options: ["A) Egypt", "B) Turkey", "C) Jordan", "D) Israel"], answer: "C) Jordan", explanation: "Petra, the 'Rose City,' is a UNESCO World Heritage Site carved into rose-red cliffs in Jordan.", year: 1900 },
+    { question: "What is the name of the imaginary line dividing the Earth into Northern and Southern hemispheres?", options: ["A) Prime Meridian", "B) Tropic of Cancer", "C) Equator", "D) International Date Line"], answer: "C) Equator", explanation: "The equator is an imaginary line at 0 degrees latitude that circles Earth at its widest point.", year: 1900 },
+    { question: "Which country has the most UNESCO World Heritage Sites?", options: ["A) China", "B) France", "C) Italy", "D) Germany"], answer: "C) Italy", explanation: "Italy leads the world with 58 UNESCO World Heritage Sites as of 2023.", year: 2023 },
+    { question: "What active volcano destroyed the city of Pompeii?", options: ["A) Etna", "B) Stromboli", "C) Vesuvius", "D) Campi Flegrei"], answer: "C) Vesuvius", explanation: "Mount Vesuvius erupted in 79 AD, burying Pompeii under volcanic ash and preserving it.", year: 79 },
+    { question: "What is the highest capital city in the world?", options: ["A) Lhasa, Tibet", "B) Quito, Ecuador", "C) La Paz, Bolivia", "D) Kathmandu, Nepal"], answer: "C) La Paz, Bolivia", explanation: "La Paz, Bolivia, sits at an elevation of about 3,640 meters (11,942 ft) making it the world's highest capital.", year: 1900 },
+    { question: "What ocean is the Bermuda Triangle located in?", options: ["A) Pacific Ocean", "B) Atlantic Ocean", "C) Indian Ocean", "D) Arctic Ocean"], answer: "B) Atlantic Ocean", explanation: "The Bermuda Triangle is in the western North Atlantic Ocean between Miami, Bermuda, and Puerto Rico.", year: 1900 },
+    { question: "Which US state is known as the 'Sunshine State'?", options: ["A) California", "B) Arizona", "C) Hawaii", "D) Florida"], answer: "D) Florida", explanation: "Florida earned its nickname 'Sunshine State' due to its warm, sunny climate most of the year.", year: 1900 },
+    { question: "What is the name of the strait that separates Europe from Africa?", options: ["A) Bosphorus", "B) Strait of Gibraltar", "C) Strait of Hormuz", "D) English Channel"], answer: "B) Strait of Gibraltar", explanation: "The Strait of Gibraltar is only 14 km wide at its narrowest point between Spain and Morocco.", year: 1900 },
+    { question: "In which country would you find Angkor Wat?", options: ["A) Thailand", "B) Myanmar", "C) Vietnam", "D) Cambodia"], answer: "D) Cambodia", explanation: "Angkor Wat is the largest religious monument in the world, built in Cambodia in the 12th century.", year: 1150 },
+    { question: "What is the smallest continent by area?", options: ["A) Europe", "B) Antarctica", "C) Australia", "D) South America"], answer: "C) Australia", explanation: "Australia is the smallest continent at about 7.7 million square km.", year: 1900 },
+    { question: "What is the capital of Argentina?", options: ["A) Montevideo", "B) Santiago", "C) Lima", "D) Buenos Aires"], answer: "D) Buenos Aires", explanation: "Buenos Aires is Argentina's capital and largest city, home to about a third of the country's population.", year: 1900 },
+    { question: "Which island is the largest in the world?", options: ["A) Borneo", "B) New Guinea", "C) Greenland", "D) Madagascar"], answer: "C) Greenland", explanation: "Greenland is the world's largest island at about 2.1 million square km (excluding continents).", year: 1900 },
+    { question: "What mountain range separates Europe from Asia?", options: ["A) Alps", "B) Pyrenees", "C) Ural Mountains", "D) Caucasus Mountains"], answer: "C) Ural Mountains", explanation: "The Ural Mountains are traditionally considered the boundary between Europe and Asia.", year: 1900 },
+    { question: "In which country is the Serengeti National Park located?", options: ["A) Kenya", "B) Tanzania", "C) South Africa", "D) Botswana"], answer: "B) Tanzania", explanation: "The Serengeti in Tanzania is famous for the annual migration of over 1.5 million wildebeest.", year: 1951 },
+    { question: "What is the name of the river that flows through London?", options: ["A) Severn", "B) Avon", "C) Thames", "D) Trent"], answer: "C) Thames", explanation: "The River Thames flows through London and has been central to the city's history for centuries.", year: 1900 },
+    { question: "Which country has the world's longest road?", options: ["A) Russia", "B) China", "C) United States", "D) Canada"], answer: "C) United States", explanation: "The US has the largest road network in the world with over 6.8 million km of roads.", year: 2020 },
+    { question: "What is the name of the famous wall separating North and South Korea?", options: ["A) 38th Parallel Wall", "B) Korean Demilitarized Zone", "C) Bamboo Curtain", "D) The DMZ Barrier"], answer: "B) Korean Demilitarized Zone", explanation: "The Korean DMZ is a 4 km wide buffer zone stretching 250 km across the peninsula.", year: 1953 },
+    { question: "In which US state is Las Vegas located?", options: ["A) Utah", "B) Arizona", "C) California", "D) Nevada"], answer: "D) Nevada", explanation: "Las Vegas is in Clark County, Nevada, and is known as the entertainment capital of the world.", year: 1905 },
+    { question: "What is the name of the large plateau in southern Africa?", options: ["A) Ethiopian Highlands", "B) Drakensberg", "C) Highveld", "D) Karoo"], answer: "C) Highveld", explanation: "The Highveld is a high plateau in South Africa and Zimbabwe where Johannesburg and Harare are located.", year: 1900 },
+    { question: "Which river is the longest in North America?", options: ["A) Colorado", "B) Columbia", "C) Mississippi-Missouri", "D) Ohio"], answer: "C) Mississippi-Missouri", explanation: "The Mississippi-Missouri river system is the longest in North America at about 6,275 km.", year: 1900 },
+    { question: "What country is home to the ancient ruins of Machu Picchu?", options: ["A) Bolivia", "B) Colombia", "C) Ecuador", "D) Peru"], answer: "D) Peru", explanation: "Machu Picchu is located in the Cusco Region of Peru, built by the Inca Empire in the 15th century.", year: 1450 },
+    { question: "What is the capital of South Korea?", options: ["A) Busan", "B) Incheon", "C) Seoul", "D) Daegu"], answer: "C) Seoul", explanation: "Seoul is South Korea's capital and largest city with a population of over 9 million.", year: 1900 },
+    { question: "Which European country has the most islands?", options: ["A) Greece", "B) Norway", "C) Sweden", "D) Finland"], answer: "B) Norway", explanation: "Norway has approximately 50,000 islands (those larger than a certain threshold), more than any other European country.", year: 1900 },
+    { question: "What is the name of the famous fjord in Norway?", options: ["A) Geirangerfjord", "B) Hardangerfjord", "C) Sognefjord", "D) Lysefjord"], answer: "C) Sognefjord", explanation: "Sognefjord is Norway's longest and deepest fjord, stretching 205 km inland.", year: 1900 },
+    { question: "Which country is the Eiffel Tower located in?", options: ["A) Belgium", "B) France", "C) Switzerland", "D) Luxembourg"], answer: "B) France", explanation: "The Eiffel Tower was built in Paris, France, as the entrance arch for the 1889 World's Fair.", year: 1889 },
+    { question: "What is the name of the tallest waterfall in the world?", options: ["A) Niagara Falls", "B) Victoria Falls", "C) Angel Falls", "D) Iguazu Falls"], answer: "C) Angel Falls", explanation: "Angel Falls in Venezuela drops 979 meters, making it the world's highest uninterrupted waterfall.", year: 1935 },
+    { question: "In what US state is Mount Rushmore located?", options: ["A) Wyoming", "B) Montana", "C) South Dakota", "D) North Dakota"], answer: "C) South Dakota", explanation: "Mount Rushmore is located in the Black Hills of South Dakota.", year: 1941 },
+    { question: "Which country has the highest average elevation?", options: ["A) Tibet", "B) Nepal", "C) Bhutan", "D) Lesotho"], answer: "A) Tibet", explanation: "Tibet has an average elevation of about 4,500 meters above sea level, earning it the name 'Roof of the World.'", year: 1900 },
+    { question: "What is the name of the large island state south of Australia?", options: ["A) New Zealand", "B) Papua New Guinea", "C) Tasmania", "D) Fiji"], answer: "C) Tasmania", explanation: "Tasmania is an Australian island state located about 240 km south of mainland Australia.", year: 1900 },
+  ],
+  "music": [
+    { question: "Which band released the album 'Abbey Road'?", options: ["A) The Rolling Stones", "B) The Who", "C) The Beatles", "D) Led Zeppelin"], answer: "C) The Beatles", explanation: "Abbey Road was released in 1969 and features the iconic crosswalk photo.", year: 1969 },
+    { question: "Which artist released 'Thriller,' the best-selling album of all time?", options: ["A) Prince", "B) Michael Jackson", "C) Stevie Wonder", "D) Whitney Houston"], answer: "B) Michael Jackson", explanation: "Thriller has sold over 70 million copies worldwide since 1982.", year: 1982 },
+    { question: "What genre of music originated in New Orleans in the early 20th century?", options: ["A) Blues", "B) Country", "C) Jazz", "D) Rock and Roll"], answer: "C) Jazz", explanation: "Jazz emerged from New Orleans around 1900, blending African rhythms, blues, and ragtime.", year: 1900 },
+    { question: "Who is known as the Queen of Pop?", options: ["A) Beyonce", "B) Lady Gaga", "C) Madonna", "D) Whitney Houston"], answer: "C) Madonna", explanation: "Madonna earned the title through decades of chart-topping hits starting in the 1980s.", year: 1984 },
+    { question: "Which classical composer became deaf but continued composing?", options: ["A) Mozart", "B) Bach", "C) Beethoven", "D) Chopin"], answer: "C) Beethoven", explanation: "Beethoven began losing his hearing in his late 20s but composed great works while deaf.", year: 1824 },
+    { question: "What was Elvis Presley's nickname?", options: ["A) The King of Pop", "B) The King of Rock and Roll", "C) The Godfather of Soul", "D) The Man in Black"], answer: "B) The King of Rock and Roll", explanation: "Elvis earned this title through his revolutionary impact on music in the 1950s.", year: 1956 },
+    { question: "Which artist released the album 'Lemonade' in 2016?", options: ["A) Rihanna", "B) Adele", "C) Taylor Swift", "D) Beyonce"], answer: "D) Beyonce", explanation: "Lemonade was a visual album exploring themes of infidelity and Black womanhood.", year: 2016 },
+    { question: "Which rock band is known for 'Bohemian Rhapsody'?", options: ["A) Led Zeppelin", "B) Pink Floyd", "C) Queen", "D) AC/DC"], answer: "C) Queen", explanation: "Queen's 'Bohemian Rhapsody' (1975) blends opera, ballad, and hard rock.", year: 1975 },
+    { question: "Who released the album '21' featuring 'Rolling in the Deep'?", options: ["A) Amy Winehouse", "B) Adele", "C) Florence Welch", "D) Lana Del Rey"], answer: "B) Adele", explanation: "Adele's '21' (2011) won six Grammy Awards.", year: 2011 },
+    { question: "Which British band released 'Wonderwall' in 1995?", options: ["A) Blur", "B) Oasis", "C) Radiohead", "D) Pulp"], answer: "B) Oasis", explanation: "Oasis released 'Wonderwall' on their second album, one of the defining songs of Britpop.", year: 1995 },
+    { question: "What instrument has 88 keys?", options: ["A) Accordion", "B) Organ", "C) Piano", "D) Harpsichord"], answer: "C) Piano", explanation: "A standard modern piano has 88 keys: 52 white and 36 black.", year: 1900 },
+    { question: "What genre is Kendrick Lamar best known for?", options: ["A) R&B", "B) Jazz", "C) Hip-hop", "D) Pop"], answer: "C) Hip-hop", explanation: "Kendrick Lamar won a Pulitzer Prize for 'DAMN.' making him the first non-classical/jazz artist to do so.", year: 2017 },
+    { question: "Which band wrote the song 'Hotel California'?", options: ["A) Fleetwood Mac", "B) Eagles", "C) America", "D) Steely Dan"], answer: "B) Eagles", explanation: "'Hotel California' was released by the Eagles in 1977 and remains one of rock's most iconic songs.", year: 1977 },
+    { question: "Who performed at the Super Bowl halftime show in 2023?", options: ["A) Taylor Swift", "B) Rihanna", "C) Beyonce", "D) Lady Gaga"], answer: "B) Rihanna", explanation: "Rihanna performed at Super Bowl LVII's halftime show in February 2023, her first live performance in years.", year: 2023 },
+    { question: "Which singer's album 'Rumours' became one of the best-selling albums ever?", options: ["A) The Eagles", "B) Fleetwood Mac", "C) ABBA", "D) Steely Dan"], answer: "B) Fleetwood Mac", explanation: "Fleetwood Mac's 'Rumours' (1977) has sold over 40 million copies worldwide.", year: 1977 },
+    { question: "What genre did Taylor Swift primarily start in?", options: ["A) Pop", "B) Rock", "C) Country", "D) R&B"], answer: "C) Country", explanation: "Taylor Swift started as a country artist before crossing over to mainstream pop.", year: 2006 },
+    { question: "Which rapper released the groundbreaking album 'The Chronic' in 1992?", options: ["A) Ice Cube", "B) Snoop Dogg", "C) Dr. Dre", "D) Tupac"], answer: "C) Dr. Dre", explanation: "The Chronic is widely considered the pioneering G-funk album that defined West Coast rap.", year: 1992 },
+    { question: "What was the best-selling single of all time?", options: ["A) White Christmas", "B) Something", "C) Candle in the Wind 1997", "D) Shape of You"], answer: "C) Candle in the Wind 1997", explanation: "Elton John's re-recorded 'Candle in the Wind' in tribute to Princess Diana sold over 33 million copies.", year: 1997 },
+    { question: "Which country did ABBA come from?", options: ["A) Norway", "B) Denmark", "C) Finland", "D) Sweden"], answer: "D) Sweden", explanation: "ABBA (Agnetha, Bjorn, Benny, Anni-Frid) was formed in Stockholm, Sweden in 1972.", year: 1972 },
+    { question: "What does 'EDM' stand for?", options: ["A) Electric Dance Music", "B) Electronic Dance Music", "C) Enhanced Digital Music", "D) Extended Dance Mix"], answer: "B) Electronic Dance Music", explanation: "EDM is a broad range of electronic music genres made primarily for clubs, raves, and festivals.", year: 1990 },
+    { question: "Which music festival is held annually in Glastonbury, UK?", options: ["A) Reading Festival", "B) Coachella", "C) Glastonbury Festival", "D) Lollapalooza"], answer: "C) Glastonbury Festival", explanation: "Glastonbury is one of the world's most famous music festivals, held since 1970 on a farm in Somerset.", year: 1970 },
+    { question: "Who wrote and performed 'Purple Rain'?", options: ["A) Jimi Hendrix", "B) David Bowie", "C) Prince", "D) Stevie Wonder"], answer: "C) Prince", explanation: "Prince released 'Purple Rain' in 1984 as part of his semi-autobiographical film of the same name.", year: 1984 },
+    { question: "Which band had the most number-one albums in the UK charts?", options: ["A) The Beatles", "B) Elvis Presley", "C) Queen", "D) The Rolling Stones"], answer: "A) The Beatles", explanation: "The Beatles hold the record with 15 UK number-one albums.", year: 1970 },
+    { question: "What instrument is Yo-Yo Ma famous for playing?", options: ["A) Violin", "B) Viola", "C) Cello", "D) Double Bass"], answer: "C) Cello", explanation: "Yo-Yo Ma is widely considered the greatest living cellist.", year: 1980 },
+    { question: "What is the name of the music scale consisting of five notes per octave?", options: ["A) Chromatic", "B) Pentatonic", "C) Diatonic", "D) Whole-tone"], answer: "B) Pentatonic", explanation: "The pentatonic scale is used across many music traditions worldwide and is the basis of many blues and rock solos.", year: 1900 },
+    { question: "Who is often called the 'Father of Rock and Roll'?", options: ["A) Jerry Lee Lewis", "B) Chuck Berry", "C) Little Richard", "D) Bill Haley"], answer: "B) Chuck Berry", explanation: "Chuck Berry's guitar-driven style and showmanship laid the foundation for rock and roll.", year: 1956 },
+    { question: "Which singer released 'Bad Guy' in 2019?", options: ["A) Ariana Grande", "B) Dua Lipa", "C) Billie Eilish", "D) Halsey"], answer: "C) Billie Eilish", explanation: "Billie Eilish released 'Bad Guy' from her debut album 'When We All Fall Asleep, Where Do We Go?' at age 17.", year: 2019 },
+    { question: "What musical instrument is Jimi Hendrix known for?", options: ["A) Bass guitar", "B) Drums", "C) Electric guitar", "D) Keyboard"], answer: "C) Electric guitar", explanation: "Jimi Hendrix is widely regarded as one of the greatest electric guitarists of all time.", year: 1967 },
+    { question: "Which rapper's album 'To Pimp a Butterfly' won a Grammy for Best Rap Album?", options: ["A) Drake", "B) J. Cole", "C) Kanye West", "D) Kendrick Lamar"], answer: "D) Kendrick Lamar", explanation: "Kendrick Lamar's 'To Pimp a Butterfly' (2015) won the Grammy for Best Rap Album.", year: 2015 },
+    { question: "What key is most commonly used in pop music?", options: ["A) A major", "B) C major", "C) G major", "D) D major"], answer: "B) C major", explanation: "C major, with no sharps or flats, is the most commonly used key in Western pop music.", year: 1900 },
+    { question: "Which opera features the aria 'Nessun Dorma'?", options: ["A) La Boheme", "B) Carmen", "C) Turandot", "D) Rigoletto"], answer: "C) Turandot", explanation: "'Nessun Dorma' is the climactic tenor aria from Puccini's final opera, Turandot.", year: 1926 },
+    { question: "Who pioneered the use of sampling in hip-hop in the 1980s?", options: ["A) DJ Kool Herc", "B) Grandmaster Flash", "C) Afrika Bambaataa", "D) All of the above"], answer: "A) DJ Kool Herc", explanation: "DJ Kool Herc pioneered the technique of isolating and repeating drum breaks, founding hip-hop in the Bronx.", year: 1973 },
+    { question: "What is the name of Bruce Springsteen's backing band?", options: ["A) The Heartbreakers", "B) The E Street Band", "C) The Revolution", "D) The Wailers"], answer: "B) The E Street Band", explanation: "The E Street Band has backed Bruce Springsteen since the early 1970s.", year: 1972 },
+    { question: "Which female artist holds the record for most Grammy Awards won?", options: ["A) Mariah Carey", "B) Beyonce", "C) Adele", "D) Taylor Swift"], answer: "B) Beyonce", explanation: "Beyonce holds the record with 32 Grammy wins as of 2024.", year: 2024 },
+    { question: "What genre did Bob Marley popularize worldwide?", options: ["A) Ska", "B) Reggae", "C) Dancehall", "D) Rocksteady"], answer: "B) Reggae", explanation: "Bob Marley brought Jamaican reggae music to global audiences in the 1970s.", year: 1973 },
+    { question: "Which London music venue is known as the 'Cathedral of Rock'?", options: ["A) The O2 Arena", "B) Royal Albert Hall", "C) Roundhouse", "D) Hammersmith Odeon"], answer: "B) Royal Albert Hall", explanation: "The Royal Albert Hall has hosted legendary concerts including the Beatles and Led Zeppelin.", year: 1870 },
+    { question: "What instrument produces sound by air blown across a reed?", options: ["A) Flute", "B) Trumpet", "C) Clarinet", "D) French Horn"], answer: "C) Clarinet", explanation: "The clarinet uses a single reed that vibrates when air passes over it to produce sound.", year: 1900 },
+    { question: "Which artist's 'Eras Tour' in 2023 became the highest-grossing concert tour?", options: ["A) Beyonce", "B) Taylor Swift", "C) Ed Sheeran", "D) Bruce Springsteen"], answer: "B) Taylor Swift", explanation: "Taylor Swift's Eras Tour became the first concert tour to gross over $1 billion.", year: 2023 },
+    { question: "What does 'LP' stand for in music?", options: ["A) Long Play", "B) Large Plate", "C) Laser Print", "D) Low Pitch"], answer: "A) Long Play", explanation: "LP (Long Play) refers to a vinyl record album, typically playing at 33 1/3 rpm.", year: 1948 },
+    { question: "Which composer wrote 'The Four Seasons'?", options: ["A) Bach", "B) Handel", "C) Vivaldi", "D) Telemann"], answer: "C) Vivaldi", explanation: "Antonio Vivaldi composed The Four Seasons around 1720, a set of four violin concertos.", year: 1720 },
+    { question: "What is the name of Kanye West's first studio album?", options: ["A) Late Registration", "B) Graduation", "C) The College Dropout", "D) 808s & Heartbreak"], answer: "C) The College Dropout", explanation: "The College Dropout (2004) was Kanye West's debut album, featuring 'Through the Wire' and 'Jesus Walks.'", year: 2004 },
+    { question: "Which song was number one on the first ever Billboard Hot 100 chart in 1958?", options: ["A) Hound Dog", "B) Poor Little Fool", "C) Rock Around the Clock", "D) Johnny B. Goode"], answer: "B) Poor Little Fool", explanation: "Ricky Nelson's 'Poor Little Fool' was the number one song on the first Billboard Hot 100 chart in August 1958.", year: 1958 },
+    { question: "What music genre combines country and rhythm-and-blues?", options: ["A) Bluegrass", "B) Rockabilly", "C) Folk", "D) Western Swing"], answer: "B) Rockabilly", explanation: "Rockabilly blended country music with R&B and rock and roll in the 1950s; Elvis was its biggest star.", year: 1954 },
+    { question: "Which band released 'Dark Side of the Moon' in 1973?", options: ["A) Led Zeppelin", "B) Deep Purple", "C) Pink Floyd", "D) Yes"], answer: "C) Pink Floyd", explanation: "The Dark Side of the Moon by Pink Floyd spent over 900 weeks on the Billboard charts.", year: 1973 },
+    { question: "What is the lowest male singing voice called?", options: ["A) Baritone", "B) Bass", "C) Tenor", "D) Countertenor"], answer: "B) Bass", explanation: "The bass is the lowest adult male voice, typically ranging from E2 to E4.", year: 1900 },
+    { question: "Which rapper first used the name 'Slim Shady' as an alter ego?", options: ["A) Jay-Z", "B) Lil Wayne", "C) Eminem", "D) Kanye West"], answer: "C) Eminem", explanation: "Eminem used 'Slim Shady' as a provocative alter ego, popularized by his 1999 album 'The Slim Shady LP.'", year: 1999 },
+    { question: "What is the name of Daft Punk's 2013 comeback single?", options: ["A) Around the World", "B) One More Time", "C) Get Lucky", "D) Harder Better Faster"], answer: "C) Get Lucky", explanation: "'Get Lucky' featuring Pharrell Williams and Nile Rodgers was Daft Punk's massive 2013 comeback hit.", year: 2013 },
+    { question: "What type of music originates from the Mississippi Delta?", options: ["A) Soul", "B) Blues", "C) Gospel", "D) R&B"], answer: "B) Blues", explanation: "Delta blues originated in the Mississippi Delta in the early 20th century and became a foundation of rock.", year: 1920 },
+    { question: "Which pianist is known for his showmanship with a candelabra?", options: ["A) Elton John", "B) Billy Joel", "C) Liberace", "D) Jerry Lee Lewis"], answer: "C) Liberace", explanation: "Liberace was famous for his flamboyant performances featuring elaborate costumes and a signature candelabra.", year: 1950 },
+    { question: "What is the name of Nirvana's debut album?", options: ["A) Nevermind", "B) In Utero", "C) MTV Unplugged in New York", "D) Bleach"], answer: "D) Bleach", explanation: "Nirvana's debut album 'Bleach' was released in 1989 before their mainstream breakthrough with 'Nevermind.'", year: 1989 },
+    { question: "Which Motown artist was known as 'The Temptations'?", options: ["A) A four-person vocal group", "B) A five-person vocal group", "C) A six-person vocal group", "D) A solo artist"], answer: "B) A five-person vocal group", explanation: "The Temptations were a five-member R&B/soul vocal group, one of Motown's most successful acts.", year: 1964 },
+    { question: "Who is credited with inventing the theremin?", options: ["A) Moog", "B) Tesla", "C) Leon Theremin", "D) Ondes Martenot"], answer: "C) Leon Theremin", explanation: "Leon Theremin invented his eponymous instrument in 1920; it's played without physical contact.", year: 1920 },
+  ],
+  "food-drink": [
+    { question: "What country is the origin of sushi?", options: ["A) China", "B) Korea", "C) Japan", "D) Thailand"], answer: "C) Japan", explanation: "Modern sushi was developed in Japan, though fermented fish with rice originated in Southeast Asia.", year: 1900 },
+    { question: "What is the main ingredient in guacamole?", options: ["A) Tomato", "B) Avocado", "C) Lime", "D) Jalapeno"], answer: "B) Avocado", explanation: "Guacamole is a Mexican dip primarily made from mashed avocados.", year: 1900 },
+    { question: "Which spice is the most expensive by weight?", options: ["A) Vanilla", "B) Cardamom", "C) Saffron", "D) Cinnamon"], answer: "C) Saffron", explanation: "Saffron costs $5,000+ per pound; each crocus produces only three stigmas, all harvested by hand.", year: 1900 },
+    { question: "Which country produces the most coffee in the world?", options: ["A) Colombia", "B) Ethiopia", "C) Vietnam", "D) Brazil"], answer: "D) Brazil", explanation: "Brazil produces about one-third of the world's coffee.", year: 2020 },
+    { question: "What is the main ingredient in hummus?", options: ["A) Lentils", "B) Chickpeas", "C) Black beans", "D) White beans"], answer: "B) Chickpeas", explanation: "Hummus is made primarily from cooked chickpeas blended with tahini, lemon juice, and garlic.", year: 1900 },
+    { question: "Which cheese is traditionally used on a Margherita pizza?", options: ["A) Cheddar", "B) Parmesan", "C) Mozzarella", "D) Provolone"], answer: "C) Mozzarella", explanation: "The Margherita uses mozzarella, tomato, and basil, representing the Italian flag colors.", year: 1889 },
+    { question: "What fruit is a key ingredient in a traditional mojito?", options: ["A) Lemon", "B) Lime", "C) Orange", "D) Grapefruit"], answer: "B) Lime", explanation: "A classic mojito combines lime juice, sugar, mint, white rum, and soda water.", year: 1900 },
+    { question: "What Japanese dish consists of battered and deep-fried vegetables or seafood?", options: ["A) Sashimi", "B) Tempura", "C) Yakitori", "D) Tonkatsu"], answer: "B) Tempura", explanation: "Tempura was influenced by Portuguese cooking techniques introduced to Japan in the 16th century.", year: 1900 },
+    { question: "Which nut is used to make marzipan?", options: ["A) Walnut", "B) Cashew", "C) Pistachio", "D) Almond"], answer: "D) Almond", explanation: "Marzipan is a confection made from ground almonds and sugar.", year: 1900 },
+    { question: "What is the world's most consumed beverage after water?", options: ["A) Coffee", "B) Tea", "C) Beer", "D) Milk"], answer: "B) Tea", explanation: "Tea is consumed by billions worldwide, especially in Asia.", year: 1900 },
+    { question: "What fermented Korean dish is made from cabbage and chili?", options: ["A) Bibimbap", "B) Bulgogi", "C) Kimchi", "D) Japchae"], answer: "C) Kimchi", explanation: "Kimchi is a traditional Korean side dish of salted and fermented vegetables, primarily napa cabbage.", year: 1900 },
+    { question: "What is the main ingredient in a traditional French bouillabaisse?", options: ["A) Chicken", "B) Beef", "C) Seafood", "D) Lamb"], answer: "C) Seafood", explanation: "Bouillabaisse is a traditional Provencal fish stew originating from Marseille.", year: 1900 },
+    { question: "What type of pasta is shaped like small rice grains?", options: ["A) Orzo", "B) Fettuccine", "C) Rigatoni", "D) Farfalle"], answer: "A) Orzo", explanation: "Orzo is a pasta shape that resembles large grains of rice.", year: 1900 },
+    { question: "Which country invented the croissant?", options: ["A) France", "B) Austria", "C) Germany", "D) Switzerland"], answer: "B) Austria", explanation: "The croissant was created in Vienna (Kipferl) and brought to France in the 19th century.", year: 1850 },
+    { question: "What cocktail is made with vodka, tomato juice, and Worcestershire sauce?", options: ["A) Screwdriver", "B) Bloody Mary", "C) Harvey Wallbanger", "D) Cape Codder"], answer: "B) Bloody Mary", explanation: "The Bloody Mary is a classic brunch cocktail with vodka, tomato juice, and spices.", year: 1930 },
+    { question: "What is the name of the Italian dessert made with espresso, ladyfingers, and mascarpone?", options: ["A) Panna cotta", "B) Cannoli", "C) Tiramisu", "D) Zabaglione"], answer: "C) Tiramisu", explanation: "Tiramisu means 'pick me up' in Italian, referring to the energizing espresso and cocoa.", year: 1960 },
+    { question: "Which nut is used in traditional pesto sauce?", options: ["A) Almonds", "B) Walnuts", "C) Pine nuts", "D) Cashews"], answer: "C) Pine nuts", explanation: "Traditional Genovese pesto contains basil, Parmesan, garlic, olive oil, and pine nuts.", year: 1900 },
+    { question: "What grain is sake made from?", options: ["A) Barley", "B) Wheat", "C) Corn", "D) Rice"], answer: "D) Rice", explanation: "Sake is a Japanese rice wine brewed through the fermentation of polished rice.", year: 1900 },
+    { question: "What is the name of the Mexican dish made with corn tortillas dipped in chili sauce?", options: ["A) Tacos", "B) Enchiladas", "C) Burritos", "D) Quesadillas"], answer: "B) Enchiladas", explanation: "Enchiladas are corn tortillas rolled around a filling and covered with a savory sauce.", year: 1900 },
+    { question: "Which country is credited with inventing champagne?", options: ["A) England", "B) Italy", "C) France", "D) Spain"], answer: "C) France", explanation: "Champagne comes from the Champagne region of France; Dom Perignon is credited with improving its production.", year: 1697 },
+    { question: "What is the world's most popular condiment?", options: ["A) Ketchup", "B) Mustard", "C) Soy sauce", "D) Mayonnaise"], answer: "C) Soy sauce", explanation: "Soy sauce is the world's most widely used condiment, especially in Asian cuisine.", year: 1900 },
+    { question: "What type of bean is used in most chocolate?", options: ["A) Soya bean", "B) Cacao bean", "C) Coffee bean", "D) Vanilla bean"], answer: "B) Cacao bean", explanation: "Chocolate is made from cacao beans, fermented, dried, and roasted seeds of the Theobroma cacao tree.", year: 1900 },
+    { question: "What is the national dish of Spain?", options: ["A) Tortilla", "B) Gazpacho", "C) Paella", "D) Churros"], answer: "C) Paella", explanation: "Paella is a rice dish from Valencia, Spain, cooked with saffron, vegetables, and meat or seafood.", year: 1900 },
+    { question: "What vegetable is the key ingredient in a classic Greek salad?", options: ["A) Lettuce", "B) Arugula", "C) Cucumber", "D) Spinach"], answer: "C) Cucumber", explanation: "A classic Greek salad (horiatiki) contains tomato, cucumber, olives, onion, and feta cheese.", year: 1900 },
+    { question: "What is Worcestershire sauce made from?", options: ["A) Fish and vinegar", "B) Soy and garlic", "C) Anchovy and tamarind", "D) Beef and molasses"], answer: "C) Anchovy and tamarind", explanation: "Worcestershire sauce contains anchovies, tamarind, vinegar, molasses, and spices.", year: 1837 },
+    { question: "What city is deep-dish pizza associated with?", options: ["A) New York", "B) Chicago", "C) Detroit", "D) Los Angeles"], answer: "B) Chicago", explanation: "Chicago deep-dish pizza features a thick crust, chunky tomato sauce on top, and lots of cheese.", year: 1943 },
+    { question: "Which fruit has its seeds on the outside?", options: ["A) Kiwi", "B) Raspberry", "C) Strawberry", "D) Pomegranate"], answer: "C) Strawberry", explanation: "Strawberries are technically not berries but accessory fruits, with their seeds (achenes) on the outside.", year: 1900 },
+    { question: "What is the Italian word for 'breakfast'?", options: ["A) Cena", "B) Pranzo", "C) Colazione", "D) Aperitivo"], answer: "C) Colazione", explanation: "Colazione is the Italian word for breakfast, though many Italians simply have coffee and a pastry.", year: 1900 },
+    { question: "What is the name of the Indian flatbread cooked in a tandoor oven?", options: ["A) Roti", "B) Naan", "C) Paratha", "D) Puri"], answer: "B) Naan", explanation: "Naan is a leavened flatbread baked against the inside of a tandoor clay oven.", year: 1900 },
+    { question: "What cocktail is made with rum, lime juice, and sugar?", options: ["A) Mojito", "B) Daiquiri", "C) Cuba Libre", "D) Pina Colada"], answer: "B) Daiquiri", explanation: "A daiquiri is a Cuban cocktail with white rum, lime juice, and sugar.", year: 1900 },
+    { question: "What food is traditionally eaten on Shrove Tuesday?", options: ["A) Hot cross buns", "B) Mince pies", "C) Pancakes", "D) Simnel cake"], answer: "C) Pancakes", explanation: "Shrove Tuesday (Pancake Day) traditionally involves eating pancakes before the fasting of Lent.", year: 1900 },
+    { question: "Which country is the world's largest producer of olive oil?", options: ["A) Italy", "B) Greece", "C) Spain", "D) Turkey"], answer: "C) Spain", explanation: "Spain produces about 40% of the world's olive oil, followed by Italy and Greece.", year: 2020 },
+    { question: "What is the name of the French region most famous for its wine?", options: ["A) Provence", "B) Normandy", "C) Bordeaux", "D) Brittany"], answer: "C) Bordeaux", explanation: "Bordeaux in southwestern France is home to some of the world's most famous and expensive wines.", year: 1900 },
+    { question: "What food item is known as 'white gold' and was once used as currency?", options: ["A) Sugar", "B) Salt", "C) Flour", "D) Rice"], answer: "B) Salt", explanation: "Salt was so valuable in ancient times that Roman soldiers were partly paid in it, giving us the word 'salary.'", year: 1900 },
+    { question: "Which country invented Worcestershire sauce?", options: ["A) USA", "B) Australia", "C) England", "D) Ireland"], answer: "C) England", explanation: "Worcestershire sauce was created in the city of Worcester, England, in the 1830s by Lea & Perrins.", year: 1837 },
+    { question: "What is the most popular pizza topping in America?", options: ["A) Sausage", "B) Pepperoni", "C) Mushroom", "D) Extra cheese"], answer: "B) Pepperoni", explanation: "Pepperoni is the most popular pizza topping in America, ordered on about 36% of all pizzas.", year: 2020 },
+    { question: "What is the name of the sweet Japanese rice wine served warm?", options: ["A) Shochu", "B) Soju", "C) Sake", "D) Mirin"], answer: "C) Sake", explanation: "Sake is a Japanese alcoholic beverage made by fermenting rice, often served warm.", year: 1900 },
+    { question: "In which country did ramen noodles originate?", options: ["A) Japan", "B) China", "C) Korea", "D) Vietnam"], answer: "B) China", explanation: "Ramen originated in China as a wheat noodle dish before being adopted and transformed by Japanese cuisine.", year: 1900 },
+    { question: "What are the three main types of chocolate?", options: ["A) Dark, milk, and white", "B) Dark, bitter, and sweet", "C) Milk, white, and blonde", "D) Semi-sweet, bittersweet, and unsweetened"], answer: "A) Dark, milk, and white", explanation: "The three main commercial chocolate types are dark, milk, and white chocolate.", year: 1900 },
+    { question: "What cooking technique involves briefly cooking food in boiling water then plunging into ice water?", options: ["A) Poaching", "B) Blanching", "C) Steaming", "D) Sauteing"], answer: "B) Blanching", explanation: "Blanching briefly cooks food in boiling water, then stops cooking quickly in ice water to preserve color and texture.", year: 1900 },
+    { question: "Which country is tahini originally from?", options: ["A) Israel", "B) Lebanon", "C) Middle East (ancient)", "D) Greece"], answer: "C) Middle East (ancient)", explanation: "Tahini (sesame paste) has been made in the Middle East for thousands of years, with no single country of origin.", year: 1900 },
+    { question: "What is the name of Mexico's famous chili-chocolate sauce?", options: ["A) Salsa", "B) Mole", "C) Adobo", "D) Chipotle"], answer: "B) Mole", explanation: "Mole is a rich Mexican sauce made with chilies, spices, and often chocolate, famously from Oaxaca and Puebla.", year: 1900 },
+    { question: "What vegetable is the main ingredient in gazpacho?", options: ["A) Pepper", "B) Zucchini", "C) Tomato", "D) Onion"], answer: "C) Tomato", explanation: "Gazpacho is a cold Spanish soup made primarily of blended raw tomatoes with other vegetables.", year: 1900 },
+    { question: "What type of bread is used to make a traditional Reuben sandwich?", options: ["A) Sourdough", "B) Rye", "C) Pumpernickel", "D) White"], answer: "B) Rye", explanation: "A traditional Reuben sandwich is made with corned beef, Swiss cheese, sauerkraut, and Russian dressing on rye bread.", year: 1900 },
+    { question: "Which country is responsible for the creation of cheese fondue?", options: ["A) France", "B) Germany", "C) Switzerland", "D) Austria"], answer: "C) Switzerland", explanation: "Cheese fondue is a traditional Swiss dish of melted cheese served in a communal pot.", year: 1900 },
+    { question: "What is the primary grain used to make whiskey in Scotland?", options: ["A) Corn", "B) Wheat", "C) Barley", "D) Rye"], answer: "C) Barley", explanation: "Scotch whisky (Scotch) is made from malted barley, water, and yeast.", year: 1900 },
+    { question: "What is the name of the Japanese technique of slow-grilling over charcoal?", options: ["A) Teppanyaki", "B) Yakitori", "C) Teriyaki", "D) Robata"], answer: "D) Robata", explanation: "Robata (robatayaki) is a Japanese slow-grilling technique over charcoal at low heat.", year: 1900 },
+    { question: "Which city is known for its distinctive style of barbecue using dry rubs?", options: ["A) Kansas City", "B) Memphis", "C) Austin", "D) Nashville"], answer: "B) Memphis", explanation: "Memphis BBQ is famous for dry-rubbed ribs, as opposed to the saucy styles of Kansas City or Carolina.", year: 1900 },
+    { question: "What type of eggs are used in a traditional carbonara?", options: ["A) Whole eggs and cream", "B) Egg yolks and Parmesan", "C) Scrambled eggs", "D) Poached eggs"], answer: "B) Egg yolks and Parmesan", explanation: "Authentic Roman carbonara uses only egg yolks, Pecorino Romano, guanciale, and black pepper. No cream!", year: 1944 },
+    { question: "Which fruit is known as the 'king of fruits' in Southeast Asia?", options: ["A) Mango", "B) Papaya", "C) Durian", "D) Jackfruit"], answer: "C) Durian", explanation: "The durian is called the 'King of Fruits' in Southeast Asia, famous for its intense aroma and rich flavor.", year: 1900 },
+    { question: "What cooking oil is pressed from the seeds of sunflowers?", options: ["A) Canola oil", "B) Sunflower oil", "C) Safflower oil", "D) Vegetable oil"], answer: "B) Sunflower oil", explanation: "Sunflower oil is pressed from sunflower seeds and is one of the most widely used cooking oils.", year: 1900 },
+    { question: "What country is responsible for Gouda cheese?", options: ["A) Belgium", "B) Denmark", "C) Germany", "D) Netherlands"], answer: "D) Netherlands", explanation: "Gouda is a Dutch cheese named after the city of Gouda in the Netherlands.", year: 1900 },
+    { question: "What is the name of the traditional Jewish bread served on the Sabbath?", options: ["A) Pita", "B) Matzo", "C) Challah", "D) Babka"], answer: "C) Challah", explanation: "Challah is a braided egg bread traditionally baked and eaten on the Jewish Sabbath and holidays.", year: 1900 },
+    { question: "Which country invented the gin and tonic?", options: ["A) Netherlands", "B) England", "C) Scotland", "D) India"], answer: "B) England", explanation: "British soldiers in India added gin to quinine tonic water (an antimalarial) to make it more palatable.", year: 1800 },
+  ],
+  "tech": [
+    { question: "In what year was the first iPhone released?", options: ["A) 2005", "B) 2006", "C) 2007", "D) 2008"], answer: "C) 2007", explanation: "Steve Jobs unveiled the first iPhone on January 9, 2007.", year: 2007 },
+    { question: "What does HTML stand for?", options: ["A) HyperText Markup Language", "B) High-Tech Machine Learning", "C) Hybrid Text Management Layer", "D) Home Tool Markup Language"], answer: "A) HyperText Markup Language", explanation: "HTML is the standard markup language for creating web pages.", year: 1991 },
+    { question: "Who co-founded Apple with Steve Jobs?", options: ["A) Bill Gates", "B) Steve Wozniak", "C) Paul Allen", "D) Larry Page"], answer: "B) Steve Wozniak", explanation: "Wozniak and Jobs co-founded Apple in 1976.", year: 1976 },
+    { question: "What year was the World Wide Web invented?", options: ["A) 1985", "B) 1989", "C) 1993", "D) 1995"], answer: "B) 1989", explanation: "Tim Berners-Lee proposed the World Wide Web in 1989 at CERN.", year: 1989 },
+    { question: "Which programming language shares its name with an Indonesian island?", options: ["A) Ruby", "B) Python", "C) Java", "D) Swift"], answer: "C) Java", explanation: "Java was named after Java coffee; its logo features a coffee cup.", year: 1995 },
+    { question: "What does GPU stand for?", options: ["A) General Processing Unit", "B) Graphics Processing Unit", "C) Global Performance Utility", "D) Graphical Power Unit"], answer: "B) Graphics Processing Unit", explanation: "GPUs were designed for graphics but are now crucial for AI and machine learning.", year: 1999 },
+    { question: "Which company created Android?", options: ["A) Apple", "B) Microsoft", "C) Google", "D) Samsung"], answer: "C) Google", explanation: "Google acquired Android Inc. in 2005 and released the first Android phone in 2008.", year: 2008 },
+    { question: "What was the first widely used web browser?", options: ["A) Internet Explorer", "B) Netscape Navigator", "C) Firefox", "D) Mosaic"], answer: "D) Mosaic", explanation: "Mosaic, released in 1993, was the first browser to display images inline with text.", year: 1993 },
+    { question: "What social media platform was originally called 'TheFacebook'?", options: ["A) Twitter", "B) LinkedIn", "C) Facebook", "D) Myspace"], answer: "C) Facebook", explanation: "Mark Zuckerberg launched 'TheFacebook' from his Harvard dorm room in February 2004.", year: 2004 },
+    { question: "What technology does a QR code use?", options: ["A) Radio waves", "B) Infrared", "C) 2D barcode matrix", "D) NFC"], answer: "C) 2D barcode matrix", explanation: "QR codes store data in a two-dimensional grid of black and white squares, invented in 1994.", year: 1994 },
+    { question: "Which company launched the first commercially successful personal computer?", options: ["A) IBM", "B) Apple", "C) Commodore", "D) Tandy"], answer: "B) Apple", explanation: "The Apple II (1977) was one of the first mass-produced personal computers.", year: 1977 },
+    { question: "What does USB stand for?", options: ["A) Universal Serial Bus", "B) Universal System Board", "C) United Systems Base", "D) Unified Signal Backbone"], answer: "A) Universal Serial Bus", explanation: "USB was introduced in 1996 to standardize the connection of peripherals to computers.", year: 1996 },
+    { question: "Who founded Microsoft?", options: ["A) Steve Jobs and Steve Wozniak", "B) Bill Gates and Paul Allen", "C) Larry Page and Sergey Brin", "D) Jeff Bezos and Andy Jassy"], answer: "B) Bill Gates and Paul Allen", explanation: "Bill Gates and Paul Allen founded Microsoft in 1975 in Albuquerque, New Mexico.", year: 1975 },
+    { question: "What was the first video game console sold commercially?", options: ["A) Atari 2600", "B) Magnavox Odyssey", "C) ColecoVision", "D) Nintendo Entertainment System"], answer: "B) Magnavox Odyssey", explanation: "The Magnavox Odyssey, released in 1972, was the world's first commercial home video game console.", year: 1972 },
+    { question: "What does 'Wi-Fi' technically stand for?", options: ["A) Wireless Fidelity", "B) Wide Frequency", "C) Wireless Function Interface", "D) Nothing - it's just a brand name"], answer: "D) Nothing - it's just a brand name", explanation: "Wi-Fi was coined as a trademark but doesn't officially stand for anything specific.", year: 1999 },
+    { question: "What is the name of Elon Musk's space company?", options: ["A) Blue Origin", "B) Virgin Galactic", "C) SpaceX", "D) Boeing Space"], answer: "C) SpaceX", explanation: "Elon Musk founded SpaceX in 2002 with the goal of reducing space transportation costs.", year: 2002 },
+    { question: "What does CPU stand for?", options: ["A) Core Processing Utility", "B) Central Processing Unit", "C) Coded Program Upload", "D) Computer Power Unit"], answer: "B) Central Processing Unit", explanation: "The CPU is the primary component that executes instructions in a computer.", year: 1960 },
+    { question: "In what decade were floppy disks widely used?", options: ["A) 1960s", "B) 1970s-1990s", "C) 2000s", "D) 2010s"], answer: "B) 1970s-1990s", explanation: "Floppy disks were the primary removable storage medium from the mid-1970s through the late 1990s.", year: 1980 },
+    { question: "Which company invented the first commercial laser printer?", options: ["A) IBM", "B) HP", "C) Xerox", "D) Canon"], answer: "C) Xerox", explanation: "Xerox introduced the first commercial laser printer, the Xerox 9700, in 1977.", year: 1977 },
+    { question: "What was the first domain name ever registered?", options: ["A) google.com", "B) ibm.com", "C) symbolics.com", "D) mit.edu"], answer: "C) symbolics.com", explanation: "Symbolics.com was registered on March 15, 1985, making it the world's first registered domain name.", year: 1985 },
+    { question: "What is the name of the programming language created by Guido van Rossum?", options: ["A) Ruby", "B) Perl", "C) Python", "D) PHP"], answer: "C) Python", explanation: "Guido van Rossum created Python in 1991, named after Monty Python's Flying Circus.", year: 1991 },
+    { question: "What company developed the first smartphone with a touchscreen?", options: ["A) Apple", "B) IBM", "C) Nokia", "D) BlackBerry"], answer: "B) IBM", explanation: "IBM's Simon (1994) was the first touchscreen smartphone, though the term 'smartphone' didn't exist yet.", year: 1994 },
+    { question: "What is the maximum theoretical download speed of 5G?", options: ["A) 1 Gbps", "B) 5 Gbps", "C) 10 Gbps", "D) 20 Gbps"], answer: "D) 20 Gbps", explanation: "5G networks have a theoretical peak download speed of 20 Gbps, far exceeding 4G's 100 Mbps.", year: 2019 },
+    { question: "What does 'SSD' stand for in computing?", options: ["A) Super Speed Drive", "B) Solid State Drive", "C) Sequential Storage Device", "D) System Storage Disk"], answer: "B) Solid State Drive", explanation: "SSDs use flash memory instead of spinning disks for faster data access.", year: 1991 },
+    { question: "Which company owns Instagram?", options: ["A) Google", "B) Twitter", "C) Meta", "D) Snap"], answer: "C) Meta", explanation: "Facebook (now Meta) acquired Instagram in 2012 for approximately $1 billion.", year: 2012 },
+    { question: "What programming language is most commonly used for web front-end development?", options: ["A) Python", "B) Java", "C) JavaScript", "D) C++"], answer: "C) JavaScript", explanation: "JavaScript is the only programming language that runs natively in web browsers.", year: 1995 },
+    { question: "What is the name of the world's first general-purpose electronic computer?", options: ["A) UNIVAC", "B) ENIAC", "C) Colossus", "D) EDVAC"], answer: "B) ENIAC", explanation: "ENIAC (Electronic Numerical Integrator and Computer) was completed in 1945 at the University of Pennsylvania.", year: 1945 },
+    { question: "What does 'IoT' stand for?", options: ["A) Internet of Technology", "B) Integration of Terminals", "C) Internet of Things", "D) Index of Terminals"], answer: "C) Internet of Things", explanation: "IoT refers to the network of physical objects embedded with sensors and connectivity to exchange data.", year: 1999 },
+    { question: "Which company makes the M-series chips used in modern Macs?", options: ["A) Intel", "B) AMD", "C) Qualcomm", "D) Apple"], answer: "D) Apple", explanation: "Apple transitioned Macs to its own Apple Silicon M-series chips starting in 2020.", year: 2020 },
+    { question: "What was the name of the first commercially successful word processor?", options: ["A) Microsoft Word", "B) WordPerfect", "C) WordStar", "D) MultiMate"], answer: "C) WordStar", explanation: "WordStar, released in 1978, was the first widely used word processing software.", year: 1978 },
+    { question: "What does 'RAM' stand for?", options: ["A) Random Access Memory", "B) Read And Modify", "C) Rapid Application Memory", "D) Read Access Module"], answer: "A) Random Access Memory", explanation: "RAM is temporary computer memory that stores data the CPU is actively using.", year: 1960 },
+    { question: "Which search engine was the most popular before Google?", options: ["A) Yahoo", "B) Lycos", "C) AltaVista", "D) Ask Jeeves"], answer: "C) AltaVista", explanation: "AltaVista was the dominant search engine in the mid-to-late 1990s before Google surpassed it.", year: 1998 },
+    { question: "What is the name of the coding language used to style web pages?", options: ["A) HTML", "B) JavaScript", "C) CSS", "D) PHP"], answer: "C) CSS", explanation: "CSS (Cascading Style Sheets) controls the visual presentation of HTML documents.", year: 1996 },
+    { question: "Which tech giant has a campus called 'The Googleplex'?", options: ["A) Apple", "B) Google", "C) Meta", "D) Microsoft"], answer: "B) Google", explanation: "The Googleplex in Mountain View, California, has been Google's headquarters since 2004.", year: 2004 },
+    { question: "What year was the first text message sent?", options: ["A) 1989", "B) 1992", "C) 1995", "D) 1998"], answer: "B) 1992", explanation: "The first SMS text message was sent on December 3, 1992, by Neil Papworth to Richard Jarvis.", year: 1992 },
+    { question: "What is blockchain technology most commonly associated with?", options: ["A) Social media", "B) Cloud computing", "C) Cryptocurrency", "D) Streaming services"], answer: "C) Cryptocurrency", explanation: "Blockchain is a distributed ledger technology underlying cryptocurrencies like Bitcoin.", year: 2008 },
+    { question: "Who invented the telephone?", options: ["A) Thomas Edison", "B) Nikola Tesla", "C) Alexander Graham Bell", "D) Guglielmo Marconi"], answer: "C) Alexander Graham Bell", explanation: "Alexander Graham Bell is credited with inventing the telephone, receiving the patent in 1876.", year: 1876 },
+    { question: "What did Amazon originally sell when it launched in 1995?", options: ["A) Everything", "B) Electronics", "C) Books", "D) Groceries"], answer: "C) Books", explanation: "Amazon launched as an online bookstore in 1995 before expanding to become 'The Everything Store.'", year: 1995 },
+    { question: "What programming concept uses functions calling themselves?", options: ["A) Iteration", "B) Recursion", "C) Polymorphism", "D) Encapsulation"], answer: "B) Recursion", explanation: "Recursion is when a function calls itself as part of its execution, useful for solving hierarchical problems.", year: 1960 },
+    { question: "Which company developed the first commercial operating system for personal computers?", options: ["A) Apple", "B) Microsoft", "C) Digital Research", "D) IBM"], answer: "C) Digital Research", explanation: "Digital Research's CP/M (1974) was the first OS widely used on personal computers before MS-DOS.", year: 1974 },
+    { question: "What term describes software that is free to use and whose source code is publicly available?", options: ["A) Freeware", "B) Shareware", "C) Open source", "D) Abandonware"], answer: "C) Open source", explanation: "Open source software allows anyone to view, use, modify, and distribute the source code.", year: 1998 },
+    { question: "In what year did YouTube launch?", options: ["A) 2003", "B) 2005", "C) 2007", "D) 2009"], answer: "B) 2005", explanation: "YouTube was founded in February 2005 and acquired by Google in October 2006.", year: 2005 },
+    { question: "Which tech company created the Alexa voice assistant?", options: ["A) Google", "B) Apple", "C) Amazon", "D) Microsoft"], answer: "C) Amazon", explanation: "Amazon launched Alexa alongside the Echo smart speaker in November 2014.", year: 2014 },
+    { question: "What type of attack involves flooding a server with traffic to take it offline?", options: ["A) Phishing", "B) Man-in-the-middle", "C) DDoS", "D) SQL injection"], answer: "C) DDoS", explanation: "A Distributed Denial of Service (DDoS) attack overwhelms servers with traffic from many sources.", year: 2000 },
+    { question: "What company created the Nintendo Switch?", options: ["A) Sega", "B) Sony", "C) Microsoft", "D) Nintendo"], answer: "D) Nintendo", explanation: "Nintendo released the Nintendo Switch in March 2017, a hybrid home/portable console.", year: 2017 },
+    { question: "What does 'API' stand for?", options: ["A) Application Program Interface", "B) Automated Protocol Integration", "C) Advanced Programming Index", "D) Application Processing Infrastructure"], answer: "A) Application Program Interface", explanation: "An API allows different software applications to communicate with each other.", year: 1970 },
+    { question: "Which company made the first consumer VR headset to gain widespread adoption?", options: ["A) HTC", "B) Sony", "C) Google", "D) Oculus (Meta)"], answer: "D) Oculus (Meta)", explanation: "The Oculus Rift (2016) and later Quest series brought consumer VR to mainstream audiences.", year: 2016 },
+    { question: "What is the name of Apple's voice assistant?", options: ["A) Alexa", "B) Cortana", "C) Siri", "D) Bixby"], answer: "C) Siri", explanation: "Siri was introduced with the iPhone 4S in 2011, the first mainstream AI voice assistant.", year: 2011 },
+    { question: "Which protocol is the foundation of data communication on the internet?", options: ["A) HTTP", "B) FTP", "C) TCP/IP", "D) SMTP"], answer: "C) TCP/IP", explanation: "TCP/IP (Transmission Control Protocol/Internet Protocol) is the fundamental suite for internet communications.", year: 1983 },
+    { question: "What is the name of Google's mobile operating system?", options: ["A) Chrome OS", "B) Android", "C) Fuchsia", "D) Pixel OS"], answer: "B) Android", explanation: "Android is Google's open-source mobile OS, first released in 2008.", year: 2008 },
+    { question: "What year did Netflix begin its streaming service?", options: ["A) 2005", "B) 2007", "C) 2009", "D) 2011"], answer: "B) 2007", explanation: "Netflix launched its streaming service in 2007, transitioning from its DVD-by-mail business.", year: 2007 },
+    { question: "Which cryptocurrency was the first ever created?", options: ["A) Ethereum", "B) Litecoin", "C) Bitcoin", "D) Ripple"], answer: "C) Bitcoin", explanation: "Bitcoin was created in 2009 by the pseudonymous Satoshi Nakamoto.", year: 2009 },
+    { question: "What is the name of the AI system developed by OpenAI that went viral in late 2022?", options: ["A) DALL-E", "B) GPT-4", "C) ChatGPT", "D) Copilot"], answer: "C) ChatGPT", explanation: "ChatGPT launched in November 2022 and reached 100 million users in just two months.", year: 2022 },
+    { question: "What was the name of the social network before Twitter became X?", options: ["A) Twitterverse", "B) The Bird App", "C) Tweet", "D) Twitter"], answer: "D) Twitter", explanation: "Twitter was renamed to X in 2023 after Elon Musk acquired it in October 2022.", year: 2023 },
+    { question: "What does the 'https' in a web address indicate?", options: ["A) The website is hosted", "B) The connection is secure", "C) The site uses HTML5", "D) The site is commercial"], answer: "B) The connection is secure", explanation: "HTTPS (HyperText Transfer Protocol Secure) uses SSL/TLS encryption to secure connections.", year: 1994 },
+    { question: "Which company's virtual assistant is named Cortana?", options: ["A) Apple", "B) Google", "C) Amazon", "D) Microsoft"], answer: "D) Microsoft", explanation: "Microsoft introduced Cortana in 2014 as part of Windows Phone 8.1.", year: 2014 },
+    { question: "What is the file format used by Microsoft Word documents?", options: ["A) .pdf", "B) .txt", "C) .docx", "D) .rtf"], answer: "C) .docx", explanation: "The .docx format has been Microsoft Word's default format since Office 2007.", year: 2007 },
+    { question: "What is the name of the AI chip that powers modern GPT models at scale?", options: ["A) TPU", "B) NVIDIA H100", "C) Intel Gaudi", "D) AMD Instinct"], answer: "B) NVIDIA H100", explanation: "NVIDIA's H100 GPU is the primary chip powering large-scale AI training and inference.", year: 2022 },
+    { question: "Who invented the World Wide Web?", options: ["A) Bill Gates", "B) Vint Cerf", "C) Tim Berners-Lee", "D) Steve Jobs"], answer: "C) Tim Berners-Lee", explanation: "Tim Berners-Lee invented the World Wide Web in 1989 and built the first web browser in 1990.", year: 1989 },
+  ],
+  "literature": [
+    { question: "Who wrote 'Romeo and Juliet'?", options: ["A) Charles Dickens", "B) William Shakespeare", "C) Jane Austen", "D) Christopher Marlowe"], answer: "B) William Shakespeare", explanation: "Shakespeare wrote this iconic tragedy around 1594-1596.", year: 1596 },
+    { question: "What is the first Harry Potter book?", options: ["A) Chamber of Secrets", "B) Prisoner of Azkaban", "C) Philosopher's Stone", "D) Goblet of Fire"], answer: "C) Philosopher's Stone", explanation: "J.K. Rowling published Harry Potter and the Philosopher's Stone in 1997.", year: 1997 },
+    { question: "Who wrote '1984'?", options: ["A) Aldous Huxley", "B) Ray Bradbury", "C) George Orwell", "D) Kurt Vonnegut"], answer: "C) George Orwell", explanation: "George Orwell published 1984 in 1949 as a warning about totalitarianism.", year: 1949 },
+    { question: "Which novel begins with 'Call me Ishmael'?", options: ["A) The Great Gatsby", "B) Moby-Dick", "C) A Tale of Two Cities", "D) Don Quixote"], answer: "B) Moby-Dick", explanation: "Herman Melville's Moby-Dick (1851) opens with one of literature's most famous first lines.", year: 1851 },
+    { question: "Who wrote 'Pride and Prejudice'?", options: ["A) Charlotte Bronte", "B) Jane Austen", "C) Mary Shelley", "D) Emily Bronte"], answer: "B) Jane Austen", explanation: "Jane Austen published Pride and Prejudice in 1813.", year: 1813 },
+    { question: "What fictional detective lived at 221B Baker Street?", options: ["A) Hercule Poirot", "B) Philip Marlowe", "C) Sherlock Holmes", "D) Miss Marple"], answer: "C) Sherlock Holmes", explanation: "Arthur Conan Doyle created Sherlock Holmes in 1887.", year: 1887 },
+    { question: "Who is the author of 'The Great Gatsby'?", options: ["A) Ernest Hemingway", "B) John Steinbeck", "C) F. Scott Fitzgerald", "D) William Faulkner"], answer: "C) F. Scott Fitzgerald", explanation: "Fitzgerald published The Great Gatsby in 1925, capturing the Jazz Age.", year: 1925 },
+    { question: "Which author created the world of Middle-earth?", options: ["A) C.S. Lewis", "B) J.R.R. Tolkien", "C) George R.R. Martin", "D) Terry Pratchett"], answer: "B) J.R.R. Tolkien", explanation: "Tolkien created Middle-earth in The Hobbit (1937) and The Lord of the Rings (1954-1955).", year: 1954 },
+    { question: "What dystopian novel features a society that burns books?", options: ["A) Brave New World", "B) 1984", "C) Fahrenheit 451", "D) The Handmaid's Tale"], answer: "C) Fahrenheit 451", explanation: "Ray Bradbury's Fahrenheit 451 (1953) depicts firemen who burn books.", year: 1953 },
+    { question: "Who wrote 'To Kill a Mockingbird'?", options: ["A) Toni Morrison", "B) Flannery O'Connor", "C) Harper Lee", "D) Maya Angelou"], answer: "C) Harper Lee", explanation: "Harper Lee published To Kill a Mockingbird in 1960, winning the Pulitzer Prize.", year: 1960 },
+    { question: "What was the pen name of Samuel Clemens?", options: ["A) O. Henry", "B) Mark Twain", "C) Lewis Carroll", "D) George Eliot"], answer: "B) Mark Twain", explanation: "Mark Twain wrote classics like The Adventures of Huckleberry Finn.", year: 1885 },
+    { question: "Which Gabriel Garcia Marquez novel defines magical realism?", options: ["A) Love in the Time of Cholera", "B) One Hundred Years of Solitude", "C) Chronicle of a Death Foretold", "D) The Autumn of the Patriarch"], answer: "B) One Hundred Years of Solitude", explanation: "Published in 1967, it tells the multigenerational story of the Buendia family.", year: 1967 },
+    { question: "Which poet wrote 'The Raven'?", options: ["A) Walt Whitman", "B) Emily Dickinson", "C) Edgar Allan Poe", "D) Henry Wadsworth Longfellow"], answer: "C) Edgar Allan Poe", explanation: "'The Raven' was published in 1845 and became Edgar Allan Poe's most famous poem.", year: 1845 },
+    { question: "Who wrote 'Don Quixote'?", options: ["A) Lope de Vega", "B) Miguel de Cervantes", "C) Federico Garcia Lorca", "D) Jorge Luis Borges"], answer: "B) Miguel de Cervantes", explanation: "Don Quixote (1605) by Cervantes is considered the first modern novel.", year: 1605 },
+    { question: "Which Charles Dickens novel features a character called Ebenezer Scrooge?", options: ["A) Oliver Twist", "B) David Copperfield", "C) Great Expectations", "D) A Christmas Carol"], answer: "D) A Christmas Carol", explanation: "A Christmas Carol (1843) introduced Scrooge and became one of the most beloved holiday stories.", year: 1843 },
+    { question: "Who wrote 'Brave New World'?", options: ["A) George Orwell", "B) Ray Bradbury", "C) Aldous Huxley", "D) Kurt Vonnegut"], answer: "C) Aldous Huxley", explanation: "Aldous Huxley published Brave New World in 1932, depicting a dystopia of pleasure and control.", year: 1932 },
+    { question: "In which Dostoyevsky novel does a student commit murder?", options: ["A) The Idiot", "B) The Brothers Karamazov", "C) Crime and Punishment", "D) Demons"], answer: "C) Crime and Punishment", explanation: "Crime and Punishment (1866) follows student Raskolnikov's murder of a pawnbroker and his psychological torment.", year: 1866 },
+    { question: "Who is the author of 'The Catcher in the Rye'?", options: ["A) Jack Kerouac", "B) J.D. Salinger", "C) John Updike", "D) Philip Roth"], answer: "B) J.D. Salinger", explanation: "J.D. Salinger published The Catcher in the Rye in 1951, narrated by the alienated teenager Holden Caulfield.", year: 1951 },
+    { question: "What is the name of the oppressive government in George Orwell's 1984?", options: ["A) The Party", "B) The Ministry", "C) Big State", "D) The Brotherhood"], answer: "A) The Party", explanation: "The Party, led by Big Brother, controls Oceania through surveillance and propaganda in Orwell's dystopia.", year: 1949 },
+    { question: "Which ancient Greek epic poem follows the journey of Odysseus?", options: ["A) The Iliad", "B) The Aeneid", "C) The Odyssey", "D) The Metamorphoses"], answer: "C) The Odyssey", explanation: "Homer's Odyssey follows Odysseus on his 10-year journey home after the fall of Troy.", year: 800 },
+    { question: "Who wrote 'Wuthering Heights'?", options: ["A) Jane Austen", "B) Charlotte Bronte", "C) Emily Bronte", "D) George Eliot"], answer: "C) Emily Bronte", explanation: "Emily Bronte published Wuthering Heights in 1847 under the pseudonym Ellis Bell.", year: 1847 },
+    { question: "What novel features a character who never leaves the island of Manhattan but sees the world?", options: ["A) The Great Gatsby", "B) Invisible Man", "C) Giovanni's Room", "D) The Alchemist"], answer: "A) The Great Gatsby", explanation: "Nick Carraway in The Great Gatsby witnesses the glittering but hollow world of the wealthy Gatsby.", year: 1925 },
+    { question: "Who wrote the 'Hitchhiker's Guide to the Galaxy'?", options: ["A) Terry Pratchett", "B) Isaac Asimov", "C) Douglas Adams", "D) Arthur C. Clarke"], answer: "C) Douglas Adams", explanation: "Douglas Adams wrote The Hitchhiker's Guide to the Galaxy in 1979, starting as a BBC radio comedy.", year: 1979 },
+    { question: "What Toni Morrison novel is set in post-Civil War America and features a freed slave haunted by a ghost?", options: ["A) Song of Solomon", "B) Beloved", "C) The Bluest Eye", "D) Sula"], answer: "B) Beloved", explanation: "Beloved (1987) won the Pulitzer Prize for Fiction and is based on the story of Margaret Garner.", year: 1987 },
+    { question: "What is the first line of Tolstoy's 'Anna Karenina'?", options: ["A) 'Call me Ishmael.'", "B) 'It was the best of times, it was the worst of times.'", "C) 'All happy families are alike.'", "D) 'I am an invisible man.'"], answer: "C) All happy families are alike.'", explanation: "'All happy families are alike; each unhappy family is unhappy in its own way.' opens Anna Karenina.", year: 1878 },
+    { question: "Which Shakespeare play features the witches who say 'Double, double toil and trouble'?", options: ["A) Hamlet", "B) Macbeth", "C) King Lear", "D) Othello"], answer: "B) Macbeth", explanation: "The Three Witches in Macbeth (1606) speak this incantation while preparing a potion.", year: 1606 },
+    { question: "Who wrote the epic poem 'Paradise Lost'?", options: ["A) William Shakespeare", "B) Geoffrey Chaucer", "C) John Milton", "D) Edmund Spenser"], answer: "C) John Milton", explanation: "John Milton published Paradise Lost in 1667, retelling the story of Adam and Eve's fall from grace.", year: 1667 },
+    { question: "What is the name of the whale in Moby-Dick?", options: ["A) The Great White", "B) Moby", "C) Moby Dick", "D) The White Whale"], answer: "C) Moby Dick", explanation: "The albino sperm whale is called Moby Dick; Captain Ahab obsessively hunts it throughout the novel.", year: 1851 },
+    { question: "Who wrote 'The Canterbury Tales'?", options: ["A) William Shakespeare", "B) Geoffrey Chaucer", "C) John Gower", "D) William Langland"], answer: "B) Geoffrey Chaucer", explanation: "Geoffrey Chaucer wrote The Canterbury Tales in the late 14th century, a collection of stories told by pilgrims.", year: 1390 },
+    { question: "What dystopian novel is set in the fictional country of Gilead?", options: ["A) Never Let Me Go", "B) Oryx and Crake", "C) The Handmaid's Tale", "D) We"], answer: "C) The Handmaid's Tale", explanation: "Margaret Atwood's The Handmaid's Tale (1985) depicts Gilead, a patriarchal theocracy.", year: 1985 },
+    { question: "Who wrote 'Crime and Punishment'?", options: ["A) Leo Tolstoy", "B) Ivan Turgenev", "C) Fyodor Dostoyevsky", "D) Anton Chekhov"], answer: "C) Fyodor Dostoyevsky", explanation: "Dostoyevsky published Crime and Punishment in 1866 in serialized form.", year: 1866 },
+    { question: "Which novel by Salman Rushdie sparked international controversy in 1989?", options: ["A) Midnight's Children", "B) The Satanic Verses", "C) The Moor's Last Sigh", "D) Shame"], answer: "B) The Satanic Verses", explanation: "The Satanic Verses led to a fatwa by Iran's Ayatollah Khomeini calling for Rushdie's death.", year: 1989 },
+    { question: "In what country is the novel 'One Hundred Years of Solitude' set?", options: ["A) Argentina", "B) Peru", "C) Mexico", "D) Colombia"], answer: "D) Colombia", explanation: "The novel is set in the fictional town of Macondo, based on Garcia Marquez's hometown in Colombia.", year: 1967 },
+    { question: "Who wrote 'The Old Man and the Sea'?", options: ["A) William Faulkner", "B) John Steinbeck", "C) Ernest Hemingway", "D) F. Scott Fitzgerald"], answer: "C) Ernest Hemingway", explanation: "Hemingway published The Old Man and the Sea in 1952, winning the Pulitzer Prize and contributing to his Nobel Prize.", year: 1952 },
+    { question: "What is the subtitle of Mary Shelley's Frankenstein?", options: ["A) The New Prometheus", "B) The Modern Prometheus", "C) The Science Monster", "D) The Gothic Horror"], answer: "B) The Modern Prometheus", explanation: "Frankenstein; or, The Modern Prometheus (1818) draws a parallel between Victor Frankenstein and the Titan Prometheus.", year: 1818 },
+    { question: "Which Russian novel features Pierre Bezukhov and Prince Andrei Bolkonsky?", options: ["A) Anna Karenina", "B) War and Peace", "C) The Brothers Karamazov", "D) Dead Souls"], answer: "B) War and Peace", explanation: "Leo Tolstoy's War and Peace (1869) is one of the longest and most celebrated novels ever written.", year: 1869 },
+    { question: "What is the name of the fictional school in Harry Potter?", options: ["A) Ilvermorny", "B) Durmstrang", "C) Beauxbatons", "D) Hogwarts"], answer: "D) Hogwarts", explanation: "Hogwarts School of Witchcraft and Wizardry is where Harry Potter learns magic in J.K. Rowling's series.", year: 1997 },
+    { question: "Who wrote 'The Grapes of Wrath'?", options: ["A) William Faulkner", "B) John Steinbeck", "C) Theodore Dreiser", "D) Sinclair Lewis"], answer: "B) John Steinbeck", explanation: "The Grapes of Wrath (1939) depicts the Joad family's migration during the Great Depression.", year: 1939 },
+    { question: "What is the name of the narrator in 'The Great Gatsby'?", options: ["A) Tom Buchanan", "B) Jay Gatsby", "C) Nick Carraway", "D) Jordan Baker"], answer: "C) Nick Carraway", explanation: "Nick Carraway narrates the novel as Gatsby's neighbor and Daisy's cousin.", year: 1925 },
+    { question: "Which author wrote 'Of Mice and Men'?", options: ["A) Ernest Hemingway", "B) William Faulkner", "C) John Steinbeck", "D) Theodore Dreiser"], answer: "C) John Steinbeck", explanation: "Of Mice and Men (1937) by Steinbeck tells the story of migrant ranch workers George and Lennie.", year: 1937 },
+    { question: "Who wrote 'Slaughterhouse-Five'?", options: ["A) Joseph Heller", "B) Ken Kesey", "C) Kurt Vonnegut", "D) Norman Mailer"], answer: "C) Kurt Vonnegut", explanation: "Slaughterhouse-Five (1969) by Vonnegut draws on his experience as a POW in the Dresden bombing.", year: 1969 },
+    { question: "What is the first word of 'Moby-Dick'?", options: ["A) 'Whale'", "B) 'Call'", "C) 'Darkness'", "D) 'It'"], answer: "B) 'Call'", explanation: "Moby-Dick opens with 'Call me Ishmael,' one of the most famous opening lines in literature.", year: 1851 },
+    { question: "Which poet wrote 'Do not go gentle into that good night'?", options: ["A) W.B. Yeats", "B) T.S. Eliot", "C) Dylan Thomas", "D) Wilfred Owen"], answer: "C) Dylan Thomas", explanation: "This villanelle was written by Welsh poet Dylan Thomas in 1947, about raging against death.", year: 1947 },
+    { question: "Who wrote 'Invisible Man' (not H.G. Wells)?", options: ["A) James Baldwin", "B) Richard Wright", "C) Ralph Ellison", "D) Chester Himes"], answer: "C) Ralph Ellison", explanation: "Ralph Ellison's Invisible Man (1952) won the National Book Award and explores Black identity in America.", year: 1952 },
+    { question: "What is the name of the castle in Dracula?", options: ["A) Castle Frankenstein", "B) Castle Dracula", "C) Transylvania Castle", "D) Castle Wolfstein"], answer: "B) Castle Dracula", explanation: "Bram Stoker's Dracula (1897) centers on Castle Dracula in Transylvania.", year: 1897 },
+    { question: "Which French author wrote 'Les Miserables'?", options: ["A) Gustave Flaubert", "B) Emile Zola", "C) Victor Hugo", "D) Honore de Balzac"], answer: "C) Victor Hugo", explanation: "Victor Hugo published Les Miserables in 1862, following Jean Valjean's quest for redemption.", year: 1862 },
+    { question: "What classic Russian novel opens on a train journey?", options: ["A) War and Peace", "B) Anna Karenina", "C) The Brothers Karamazov", "D) Crime and Punishment"], answer: "B) Anna Karenina", explanation: "While not literally opening on a train, trains are symbolic throughout Anna Karenina; the fatal meeting occurs on a train platform.", year: 1878 },
+    { question: "Who wrote 'Lord of the Flies'?", options: ["A) John Golding", "B) William Golding", "C) George Golding", "D) Peter Golding"], answer: "B) William Golding", explanation: "William Golding's Lord of the Flies (1954) depicts British boys stranded on an island descending into savagery.", year: 1954 },
+    { question: "Which poet wrote 'The Waste Land'?", options: ["A) W.B. Yeats", "B) Ezra Pound", "C) T.S. Eliot", "D) Robert Frost"], answer: "C) T.S. Eliot", explanation: "T.S. Eliot's The Waste Land (1922) is considered one of the most important poems of the 20th century.", year: 1922 },
+    { question: "What Austen novel features the Bennet family with five daughters?", options: ["A) Sense and Sensibility", "B) Emma", "C) Northanger Abbey", "D) Pride and Prejudice"], answer: "D) Pride and Prejudice", explanation: "Pride and Prejudice centers on Mrs. Bennet's desperate attempts to marry off her five daughters.", year: 1813 },
+    { question: "In which Shakespeare play does the character Iago appear?", options: ["A) Hamlet", "B) King Lear", "C) Othello", "D) Macbeth"], answer: "C) Othello", explanation: "Iago is the manipulative villain in Shakespeare's Othello, engineering the protagonist's downfall.", year: 1604 },
+    { question: "Who wrote 'The Sun Also Rises'?", options: ["A) F. Scott Fitzgerald", "B) Ernest Hemingway", "C) William Faulkner", "D) John Dos Passos"], answer: "B) Ernest Hemingway", explanation: "The Sun Also Rises (1926) is Hemingway's first major novel, depicting the Lost Generation in post-WWI Europe.", year: 1926 },
+    { question: "What is the name of the society in Huxley's 'Brave New World'?", options: ["A) The World State", "B) Oceania", "C) Gilead", "D) Panem"], answer: "A) The World State", explanation: "The World State is the global government in Brave New World that controls humanity through pleasure.", year: 1932 },
+    { question: "Who wrote 'Beloved'?", options: ["A) Alice Walker", "B) Zora Neale Hurston", "C) Toni Morrison", "D) Maya Angelou"], answer: "C) Toni Morrison", explanation: "Toni Morrison's Beloved won the Pulitzer Prize in 1988 and the Nobel Prize in Literature in 1993.", year: 1987 },
+    { question: "What is the subtitle of the first part of Dante's 'Divine Comedy'?", options: ["A) Inferno", "B) Purgatorio", "C) Paradiso", "D) Limbo"], answer: "A) Inferno", explanation: "Dante's Inferno describes the nine circles of Hell in the first part of the Divine Comedy.", year: 1320 },
+  ],
+  "movies-tv": [
+    { question: "Which film won the first Academy Award for Best Picture?", options: ["A) The Jazz Singer", "B) Wings", "C) Sunrise", "D) The Crowd"], answer: "B) Wings", explanation: "Wings (1927) won the first Best Picture Oscar at the inaugural Academy Awards ceremony in 1929.", year: 1929 },
+    { question: "Who directed 'Schindler's List'?", options: ["A) Martin Scorsese", "B) Francis Ford Coppola", "C) Steven Spielberg", "D) Oliver Stone"], answer: "C) Steven Spielberg", explanation: "Spielberg directed Schindler's List (1993), which won 7 Academy Awards including Best Picture.", year: 1993 },
+    { question: "What is the name of the fictional African country in 'Black Panther'?", options: ["A) Zamunda", "B) Wakanda", "C) Genosha", "D) Markovia"], answer: "B) Wakanda", explanation: "Wakanda is the technologically advanced fictional African nation in the Marvel Cinematic Universe.", year: 2018 },
+    { question: "Which TV series features Walter White as the main character?", options: ["A) Dexter", "B) The Sopranos", "C) Breaking Bad", "D) Weeds"], answer: "C) Breaking Bad", explanation: "Breaking Bad starred Bryan Cranston as chemistry teacher Walter White who becomes a drug lord.", year: 2008 },
+    { question: "Who played Iron Man in the Marvel Cinematic Universe?", options: ["A) Chris Evans", "B) Robert Downey Jr.", "C) Chris Hemsworth", "D) Mark Ruffalo"], answer: "B) Robert Downey Jr.", explanation: "Robert Downey Jr. played Tony Stark/Iron Man beginning with the 2008 film Iron Man.", year: 2008 },
+    { question: "What 1975 Spielberg film is considered the first modern summer blockbuster?", options: ["A) Close Encounters", "B) E.T.", "C) Jaws", "D) Raiders of the Lost Ark"], answer: "C) Jaws", explanation: "Jaws pioneered the concept of the summer blockbuster with its massive box office success.", year: 1975 },
+    { question: "Which actress played Clarice Starling in 'The Silence of the Lambs'?", options: ["A) Meryl Streep", "B) Jodie Foster", "C) Sigourney Weaver", "D) Glenn Close"], answer: "B) Jodie Foster", explanation: "Jodie Foster won the Academy Award for Best Actress for her role in The Silence of the Lambs.", year: 1991 },
+    { question: "In 'The Godfather', who played the title character Vito Corleone?", options: ["A) Al Pacino", "B) Robert De Niro", "C) Marlon Brando", "D) James Caan"], answer: "C) Marlon Brando", explanation: "Marlon Brando won the Best Actor Oscar for his iconic performance as Vito Corleone.", year: 1972 },
+    { question: "What HBO series is set in the fictional continent of Westeros?", options: ["A) The Witcher", "B) Game of Thrones", "C) House of the Dragon", "D) Vikings"], answer: "B) Game of Thrones", explanation: "Game of Thrones (2011-2019) is based on George R.R. Martin's A Song of Ice and Fire novels.", year: 2011 },
+    { question: "Who directed '2001: A Space Odyssey'?", options: ["A) George Lucas", "B) Ridley Scott", "C) Stanley Kubrick", "D) Steven Spielberg"], answer: "C) Stanley Kubrick", explanation: "Kubrick's 2001: A Space Odyssey (1968) is considered one of the greatest films ever made.", year: 1968 },
+    { question: "Which film features the line 'Here's looking at you, kid'?", options: ["A) Gone with the Wind", "B) Casablanca", "C) Sunset Boulevard", "D) The Maltese Falcon"], answer: "B) Casablanca", explanation: "Humphrey Bogart's Rick says this to Ingrid Bergman's Ilsa multiple times in Casablanca.", year: 1942 },
+    { question: "What animated film features a fish named Nemo?", options: ["A) The Little Mermaid", "B) Shark Tale", "C) Finding Nemo", "D) FishHooks"], answer: "C) Finding Nemo", explanation: "Finding Nemo (2003) follows a clownfish searching for his son Nemo across the ocean.", year: 2003 },
+    { question: "Which actor played Forrest Gump?", options: ["A) Kevin Costner", "B) Tom Hanks", "C) Jeff Bridges", "D) John Travolta"], answer: "B) Tom Hanks", explanation: "Tom Hanks won his second consecutive Best Actor Oscar for playing Forrest Gump in 1994.", year: 1994 },
+    { question: "What is the highest-grossing film of all time (not adjusted for inflation)?", options: ["A) Titanic", "B) Avengers: Endgame", "C) Avatar", "D) Star Wars: The Force Awakens"], answer: "C) Avatar", explanation: "James Cameron's Avatar (2009, re-released 2022) holds the all-time box office record.", year: 2009 },
+    { question: "Which TV show features the Dunphy and Pritchett families?", options: ["A) Arrested Development", "B) Modern Family", "C) The Middle", "D) Family Guy"], answer: "B) Modern Family", explanation: "Modern Family (2009-2020) followed three interconnected family units across 11 seasons.", year: 2009 },
+    { question: "Who directed 'Pulp Fiction'?", options: ["A) Joel Coen", "B) Quentin Tarantino", "C) David Fincher", "D) Paul Thomas Anderson"], answer: "B) Quentin Tarantino", explanation: "Tarantino's Pulp Fiction (1994) won the Palme d'Or at Cannes and was nominated for 7 Oscars.", year: 1994 },
+    { question: "What 1997 film has the most Oscar wins tied with 'Ben-Hur' and 'Return of the King'?", options: ["A) L.A. Confidential", "B) As Good as It Gets", "C) Titanic", "D) Good Will Hunting"], answer: "C) Titanic", explanation: "Titanic (1997) won 11 Academy Awards, tying the record for most wins.", year: 1997 },
+    { question: "Who played the Joker in 'The Dark Knight'?", options: ["A) Jack Nicholson", "B) Jared Leto", "C) Joaquin Phoenix", "D) Heath Ledger"], answer: "D) Heath Ledger", explanation: "Heath Ledger won a posthumous Academy Award for Best Supporting Actor for his iconic Joker performance.", year: 2008 },
+    { question: "Which Netflix series is set in a fictional Indiana town with a mysterious Upside Down?", options: ["A) Dark", "B) Outer Banks", "C) Stranger Things", "D) The OA"], answer: "C) Stranger Things", explanation: "Stranger Things premiered on Netflix in 2016, set in 1980s Hawkins, Indiana.", year: 2016 },
+    { question: "What actress played Katniss Everdeen in 'The Hunger Games'?", options: ["A) Shailene Woodley", "B) Emma Stone", "C) Jennifer Lawrence", "D) Kristen Stewart"], answer: "C) Jennifer Lawrence", explanation: "Jennifer Lawrence starred as Katniss Everdeen across four Hunger Games films.", year: 2012 },
+    { question: "Which animated Disney film features the song 'Let It Go'?", options: ["A) Tangled", "B) Moana", "C) Brave", "D) Frozen"], answer: "D) Frozen", explanation: "Frozen (2013) features Idina Menzel singing Let It Go, which won the Academy Award for Best Original Song.", year: 2013 },
+    { question: "Who created the TV series 'Friends'?", options: ["A) Chuck Lorre and Bill Prady", "B) Marta Kauffman and David Crane", "C) Larry David and Jerry Seinfeld", "D) Tina Fey and Lorne Michaels"], answer: "B) Marta Kauffman and David Crane", explanation: "Friends was created by Marta Kauffman and David Crane and ran from 1994 to 2004.", year: 1994 },
+    { question: "In which film does Tom Hanks play a man who gets stranded on a deserted island?", options: ["A) The Terminal", "B) Joe Versus the Volcano", "C) Cast Away", "D) Sully"], answer: "C) Cast Away", explanation: "Cast Away (2000) follows FedEx employee Chuck Noland stranded on a Pacific island for four years.", year: 2000 },
+    { question: "What sci-fi film franchise features the quote 'May the Force be with you'?", options: ["A) Dune", "B) Star Trek", "C) Star Wars", "D) Guardians of the Galaxy"], answer: "C) Star Wars", explanation: "May the Force be with you is the iconic phrase from George Lucas's Star Wars franchise.", year: 1977 },
+    { question: "Which actress played Marge Simpson's voice in The Simpsons?", options: ["A) Tress MacNeille", "B) Nancy Cartwright", "C) Julie Kavner", "D) Yeardley Smith"], answer: "C) Julie Kavner", explanation: "Julie Kavner has voiced Marge Simpson since the show's debut in 1989.", year: 1989 },
+    { question: "What film won the first Academy Award for Best Animated Feature?", options: ["A) Monsters, Inc.", "B) Shrek", "C) Spirited Away", "D) Finding Nemo"], answer: "B) Shrek", explanation: "Shrek (2001) won the inaugural Academy Award for Best Animated Feature in 2002.", year: 2001 },
+    { question: "Who directed 'Get Out'?", options: ["A) Ryan Coogler", "B) Barry Jenkins", "C) Ava DuVernay", "D) Jordan Peele"], answer: "D) Jordan Peele", explanation: "Jordan Peele won the Academy Award for Best Original Screenplay for Get Out (2017).", year: 2017 },
+    { question: "Which TV drama features Don Draper as the main character?", options: ["A) The Americans", "B) Boardwalk Empire", "C) Mad Men", "D) Masters of Sex"], answer: "C) Mad Men", explanation: "Mad Men (2007-2015) followed advertising executive Don Draper at the Sterling Cooper agency.", year: 2007 },
+    { question: "What film features the line 'I see dead people'?", options: ["A) The Others", "B) The Sixth Sense", "C) Stir of Echoes", "D) Ghost"], answer: "B) The Sixth Sense", explanation: "The iconic line is spoken by Haley Joel Osment's character Cole in The Sixth Sense (1999).", year: 1999 },
+    { question: "Who played Wolverine in the X-Men film franchise?", options: ["A) Christian Bale", "B) Liam Neeson", "C) Hugh Jackman", "D) Tom Hardy"], answer: "C) Hugh Jackman", explanation: "Hugh Jackman played Wolverine/Logan in 9 films from X-Men (2000) to Logan (2017).", year: 2000 },
+    { question: "Which 1994 Disney animated film features the song 'Circle of Life'?", options: ["A) Aladdin", "B) Pocahontas", "C) The Lion King", "D) Beauty and the Beast"], answer: "C) The Lion King", explanation: "The Lion King features Elton John and Tim Rice's Circle of Life as its opening song.", year: 1994 },
+    { question: "What streaming service produced 'House of Cards'?", options: ["A) HBO", "B) Amazon Prime", "C) Hulu", "D) Netflix"], answer: "D) Netflix", explanation: "House of Cards was Netflix's first original series, premiering in 2013 with Kevin Spacey.", year: 2013 },
+    { question: "Who played the role of Jack Torrance in 'The Shining'?", options: ["A) Robert De Niro", "B) Jack Nicholson", "C) Al Pacino", "D) Dustin Hoffman"], answer: "B) Jack Nicholson", explanation: "Jack Nicholson's performance as the descending-into-madness Jack Torrance is iconic.", year: 1980 },
+    { question: "What animated Pixar film features a robot collecting trash on Earth?", options: ["A) Cars", "B) The Incredibles", "C) Ratatouille", "D) WALL-E"], answer: "D) WALL-E", explanation: "WALL-E (2008) follows a waste-collecting robot who falls in love and helps save humanity.", year: 2008 },
+    { question: "Which sitcom takes place in the fictional town of Pawnee, Indiana?", options: ["A) The Office", "B) Parks and Recreation", "C) Community", "D) Brooklyn Nine-Nine"], answer: "B) Parks and Recreation", explanation: "Parks and Recreation (2009-2015) follows the parks department of Pawnee, Indiana.", year: 2009 },
+    { question: "Who directed 'The Dark Knight' trilogy?", options: ["A) Zack Snyder", "B) Sam Raimi", "C) Christopher Nolan", "D) Tim Burton"], answer: "C) Christopher Nolan", explanation: "Christopher Nolan directed Batman Begins, The Dark Knight, and The Dark Knight Rises.", year: 2005 },
+    { question: "What film is about a group of criminals whose heist goes wrong?", options: ["A) The Italian Job", "B) Ocean's Eleven", "C) Reservoir Dogs", "D) Heat"], answer: "C) Reservoir Dogs", explanation: "Quentin Tarantino's debut film Reservoir Dogs (1992) follows thieves after a diamond heist gone wrong.", year: 1992 },
+    { question: "Which actress played Katniss Everdeen?", options: ["A) Emma Watson", "B) Jennifer Lawrence", "C) Shailene Woodley", "D) Hailee Steinfeld"], answer: "B) Jennifer Lawrence", explanation: "Jennifer Lawrence starred as Katniss Everdeen in The Hunger Games franchise beginning in 2012.", year: 2012 },
+    { question: "What TV show features the fictional Dunder Mifflin Paper Company?", options: ["A) Workaholics", "B) The Office", "C) Better Off Ted", "D) Parks and Recreation"], answer: "B) The Office", explanation: "The US version of The Office (2005-2013) is set at a paper company in Scranton, Pennsylvania.", year: 2005 },
+    { question: "Who played 'Neo' in 'The Matrix'?", options: ["A) Will Smith", "B) Brad Pitt", "C) Keanu Reeves", "D) Tom Cruise"], answer: "C) Keanu Reeves", explanation: "Keanu Reeves starred as Thomas Anderson/Neo in The Matrix trilogy.", year: 1999 },
+    { question: "Which film won the 2020 Academy Award for Best Picture?", options: ["A) 1917", "B) Joker", "C) Once Upon a Time in Hollywood", "D) Parasite"], answer: "D) Parasite", explanation: "Parasite became the first non-English language film to win the Academy Award for Best Picture.", year: 2020 },
+    { question: "What sci-fi series features a crew aboard the spaceship Serenity?", options: ["A) Battlestar Galactica", "B) Farscape", "C) Firefly", "D) Babylon 5"], answer: "C) Firefly", explanation: "Firefly (2002-2003) was a Joss Whedon space western cancelled after one season but gained a cult following.", year: 2002 },
+    { question: "Who played Elizabeth II in the first two seasons of 'The Crown'?", options: ["A) Olivia Colman", "B) Imelda Staunton", "C) Claire Foy", "D) Helen Mirren"], answer: "C) Claire Foy", explanation: "Claire Foy won the Golden Globe for Best Actress for her portrayal of the young Queen Elizabeth II.", year: 2016 },
+    { question: "What 1994 film features a lion cub named Simba?", options: ["A) Bambi", "B) The Lion King", "C) The Jungle Book", "D) Fantasia"], answer: "B) The Lion King", explanation: "The Lion King (1994) is one of Disney's most successful animated films, grossing over $763 million.", year: 1994 },
+    { question: "Who directed 'Parasite'?", options: ["A) Park Chan-wook", "B) Kim Jee-woon", "C) Im Sang-soo", "D) Bong Joon-ho"], answer: "D) Bong Joon-ho", explanation: "Bong Joon-ho's Parasite (2019) swept the Oscars, winning Best Picture, Director, International Film, and Original Screenplay.", year: 2019 },
+    { question: "Which TV series is set in a women's prison called Litchfield?", options: ["A) Wentworth", "B) Bad Girls", "C) Orange Is the New Black", "D) Prison Break"], answer: "C) Orange Is the New Black", explanation: "Orange Is the New Black premiered on Netflix in 2013 and ran for 7 seasons.", year: 2013 },
+    { question: "What is the name of the Toy Story cowboy doll?", options: ["A) Buzz", "B) Woody", "C) Rex", "D) Bo Peep"], answer: "B) Woody", explanation: "Woody the cowboy doll is the main character in Pixar's Toy Story franchise.", year: 1995 },
+    { question: "Which filmmaker directed 'Inception' and 'Interstellar'?", options: ["A) J.J. Abrams", "B) Denis Villeneuve", "C) Christopher Nolan", "D) Ridley Scott"], answer: "C) Christopher Nolan", explanation: "Christopher Nolan wrote and directed both Inception (2010) and Interstellar (2014).", year: 2010 },
+    { question: "What show features the fictional Bluth family and a narrator saying 'Now the story of a wealthy family'?", options: ["A) Succession", "B) Arrested Development", "C) Schitt's Creek", "D) The Righteous Gemstones"], answer: "B) Arrested Development", explanation: "Arrested Development (2003-2019) follows the dysfunctional Bluth family, created by Mitchell Hurwitz.", year: 2003 },
+    { question: "Who played Captain Jack Sparrow in 'Pirates of the Caribbean'?", options: ["A) Orlando Bloom", "B) Geoffrey Rush", "C) Johnny Depp", "D) Bill Nighy"], answer: "C) Johnny Depp", explanation: "Johnny Depp's eccentric performance as Captain Jack Sparrow earned him an Academy Award nomination.", year: 2003 },
+    { question: "What 2010 film is about a heist inside a person's dreams?", options: ["A) The Cell", "B) Dreamscape", "C) Inception", "D) Eternal Sunshine of the Spotless Mind"], answer: "C) Inception", explanation: "Christopher Nolan's Inception (2010) won four Academy Awards and grossed over $836 million.", year: 2010 },
+    { question: "Which TV series takes place in a high school and features the character Rue Bennett?", options: ["A) Skins", "B) Euphoria", "C) Thirteen Reasons Why", "D) Degrassi"], answer: "B) Euphoria", explanation: "Euphoria premiered on HBO in 2019 with Zendaya as Rue Bennett, a teenage drug addict.", year: 2019 },
+    { question: "Who plays Tyrion Lannister in 'Game of Thrones'?", options: ["A) Nikolaj Coster-Waldau", "B) Peter Dinklage", "C) Kit Harington", "D) Liam Cunningham"], answer: "B) Peter Dinklage", explanation: "Peter Dinklage won four Emmy Awards for his portrayal of Tyrion Lannister.", year: 2011 },
+    { question: "What animated series features the adventures of SpongeBob SquarePants?", options: ["A) Ren & Stimpy", "B) Rugrats", "C) SpongeBob SquarePants", "D) Rocko's Modern Life"], answer: "C) SpongeBob SquarePants", explanation: "SpongeBob SquarePants premiered on Nickelodeon in 1999 and became one of the longest-running animated series.", year: 1999 },
+    { question: "Which 1980 film features a baseball team of misfit kids?", options: ["A) The Sandlot", "B) Bad News Bears", "C) Angels in the Outfield", "D) Little Giants"], answer: "B) Bad News Bears", explanation: "The Bad News Bears (1976 original) starred Walter Matthau coaching a little league team of misfits.", year: 1976 },
+    { question: "Who plays Eleven in 'Stranger Things'?", options: ["A) Sadie Sink", "B) Natalia Dyer", "C) Millie Bobby Brown", "D) Maya Hawke"], answer: "C) Millie Bobby Brown", explanation: "Millie Bobby Brown plays Eleven, a girl with telekinetic powers, in Stranger Things.", year: 2016 },
+    { question: "What Coen Brothers film is set in 1991 Minnesota and features a famous wood chipper scene?", options: ["A) No Country for Old Men", "B) Blood Simple", "C) Fargo", "D) The Big Lebowski"], answer: "C) Fargo", explanation: "Fargo (1996) won Academy Awards for Best Director and Best Original Screenplay.", year: 1996 },
+  ],
+};
+
+function getQuestion(category, yearFrom, yearTo) {
+  const catLabel = PRESET_CATEGORIES.find(c => c.id === category)?.label || category;
+  const questions = QUESTION_BANK[category];
+  if (!questions || questions.length === 0) {
+    return {
+      question: `What is a fun fact about ${catLabel}?`,
+      options: ["A) It's amazing", "B) It's incredible", "C) It's wonderful", "D) All of the above"],
+      answer: "D) All of the above",
+      explanation: "Well, they're all true!",
+      category,
+      categoryLabel: catLabel,
+    };
+  }
+  const filtered = questions.filter(q => q.year >= yearFrom && q.year <= yearTo);
+  const pool = filtered.length > 0 ? filtered : questions;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return { ...pick, category, categoryLabel: catLabel };
+}
+
+function SetupScreen({ onStart }) {
+  const [selectedCategories, setSelectedCategories] = useState(["history", "science", "pop-culture", "sports"]);
+  const [numPlayers, setNumPlayers] = useState(2);
+  const [playerNames, setPlayerNames] = useState(["Player 1", "Player 2", "", ""]);
+  const [questionsPerTurn, setQuestionsPerTurn] = useState(1);
+  const [yearFrom, setYearFrom] = useState(1970);
+  const [yearTo, setYearTo] = useState(2024);
+
+  const toggleCategory = (id) => {
+    setSelectedCategories(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const canStart = selectedCategories.length > 0 && numPlayers >= 2;
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "#f0f0f0", fontFamily: "'Playfair Display', serif", padding: "32px 16px" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; }
+        input[type=range] { accent-color: #FFD700; }
+        ::selection { background: #FFD700; color: #000; }
+      `}</style>
+
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 56, marginBottom: 8 }}>🎲</div>
+          <h1 style={{ fontSize: 52, fontWeight: 900, margin: 0, letterSpacing: -1, color: "#FFD700", textShadow: "0 0 40px rgba(255,215,0,0.3)" }}>
+            TRIVIAL
+          </h1>
+          <h1 style={{ fontSize: 52, fontWeight: 900, margin: 0, letterSpacing: -1, color: "#fff" }}>
+            CABIN
+          </h1>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", color: "#777", marginTop: 8, fontSize: 15, letterSpacing: 2, textTransform: "uppercase" }}>
+            Trivia Night for Your Crew
+          </p>
+        </div>
+
+        <Section title="Choose Categories">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {PRESET_CATEGORIES.map(cat => {
+              const active = selectedCategories.includes(cat.id);
+              return (
+                <button key={cat.id} onClick={() => toggleCategory(cat.id)} style={{
+                  padding: "8px 18px", borderRadius: 30, border: `2px solid ${active ? CATEGORY_COLORS[cat.id] : "#333"}`,
+                  background: active ? CATEGORY_COLORS[cat.id] + "22" : "transparent",
+                  color: active ? "#fff" : "#777", cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 14, transition: "all 0.2s", fontWeight: active ? 600 : 400
+                }}>
+                  {cat.emoji} {cat.label}
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+
+        <Section title="Year Range">
+          <p style={{ fontFamily: "'DM Sans'", color: "#aaa", fontSize: 14, marginBottom: 16 }}>
+            Limit questions to events and culture from: <span style={{ color: "#FFD700", fontWeight: 600 }}>{yearFrom} - {yearTo}</span>
+          </p>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <RangeInput label="From" value={yearFrom} min={1900} max={yearTo - 1} onChange={v => setYearFrom(Number(v))} />
+            <RangeInput label="To" value={yearTo} min={yearFrom + 1} max={2025} onChange={v => setYearTo(Number(v))} />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+            {[["All Time", 1900, 2025], ["70s-80s", 1970, 1989], ["90s-00s", 1990, 2009], ["Modern (2010+)", 2010, 2025]].map(([label, f, t]) => (
+              <button key={label} onClick={() => { setYearFrom(f); setYearTo(t); }} style={{
+                padding: "6px 14px", borderRadius: 20, border: "1px solid #444", background: "transparent",
+                color: "#aaa", cursor: "pointer", fontFamily: "'DM Sans'", fontSize: 13
+              }}>{label}</button>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Players">
+          <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
+            <span style={{ fontFamily: "'DM Sans'", color: "#aaa", fontSize: 14 }}>Number of players:</span>
+            {[2, 3, 4].map(n => (
+              <button key={n} onClick={() => setNumPlayers(n)} style={{
+                width: 40, height: 40, borderRadius: "50%", border: `2px solid ${numPlayers === n ? "#FFD700" : "#333"}`,
+                background: numPlayers === n ? "#FFD70022" : "transparent", color: numPlayers === n ? "#FFD700" : "#777",
+                cursor: "pointer", fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 16
+              }}>{n}</button>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {Array.from({ length: numPlayers }).map((_, i) => (
+              <input key={i} value={playerNames[i]} onChange={e => {
+                const names = [...playerNames];
+                names[i] = e.target.value;
+                setPlayerNames(names);
+              }} placeholder={`Player ${i + 1} name`} style={{
+                background: "#1a1a1a", border: "2px solid #333", borderRadius: 8,
+                padding: "10px 14px", color: "#fff", fontFamily: "'DM Sans'", fontSize: 14, outline: "none"
+              }} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Questions Per Turn">
+          <div style={{ display: "flex", gap: 10 }}>
+            {[1, 2, 3].map(n => (
+              <button key={n} onClick={() => setQuestionsPerTurn(n)} style={{
+                flex: 1, padding: "12px", borderRadius: 10, border: `2px solid ${questionsPerTurn === n ? "#FFD700" : "#333"}`,
+                background: questionsPerTurn === n ? "#FFD70022" : "transparent",
+                color: questionsPerTurn === n ? "#FFD700" : "#777",
+                cursor: "pointer", fontFamily: "'DM Sans'", fontWeight: 600, fontSize: 15
+              }}>{n} {n === 1 ? "question" : "questions"}</button>
+            ))}
+          </div>
+        </Section>
+
+        <button disabled={!canStart} onClick={() => onStart({
+          categories: selectedCategories,
+          yearFrom, yearTo,
+          players: playerNames.slice(0, numPlayers),
+          questionsPerTurn
+        })} style={{
+          width: "100%", padding: "18px", marginTop: 8, borderRadius: 14,
+          background: canStart ? "#FFD700" : "#333", color: canStart ? "#000" : "#555",
+          border: "none", cursor: canStart ? "pointer" : "not-allowed",
+          fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900,
+          letterSpacing: 1, transition: "all 0.2s",
+          boxShadow: canStart ? "0 4px 30px rgba(255,215,0,0.3)" : "none"
+        }}>
+          {canStart ? "🎲 Start Game" : "Select at least 1 category"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div style={{ marginBottom: 32, background: "#161616", borderRadius: 16, padding: 24, border: "1px solid #222" }}>
+      <h3 style={{ margin: "0 0 16px", fontFamily: "'Playfair Display'", fontSize: 20, color: "#FFD700", letterSpacing: 0.5 }}>
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function RangeInput({ label, value, min, max, onChange }) {
+  return (
+    <div style={{ flex: 1, minWidth: 180 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Sans'", fontSize: 13, color: "#aaa", marginBottom: 6 }}>
+        <span>{label}</span><span style={{ color: "#FFD700", fontWeight: 600 }}>{value}</span>
+      </div>
+      <input type="range" min={min} max={max} value={value} onChange={e => onChange(e.target.value)}
+        style={{ width: "100%" }} />
+    </div>
+  );
+}
+
+function GameScreen({ config, onEnd }) {
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
+  const [scores, setScores] = useState(Object.fromEntries(config.players.map(p => [p, 0])));
+  const [phase, setPhase] = useState("roll");
+  const [questions, setQuestions] = useState([]);
+  const [currentQIdx, setCurrentQIdx] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [usedKeys, setUsedKeys] = useState(new Set());
+
+  const currentPlayer = config.players[currentPlayerIdx];
+  const currentQ = questions[currentQIdx];
+
+  const startTurn = () => {
+    const cats = config.categories;
+    const picked = Array.from({ length: config.questionsPerTurn }, () =>
+      cats[Math.floor(Math.random() * cats.length)]
+    );
+    const qs = picked.map(c => {
+      let q;
+      let attempts = 0;
+      do {
+        q = getQuestion(c, config.yearFrom, config.yearTo);
+        attempts++;
+      } while (usedKeys.has(q.question) && attempts < 20);
+      setUsedKeys(prev => new Set([...prev, q.question]));
+      return q;
+    });
+    setQuestions(qs);
+    setCurrentQIdx(0);
+    setSelected(null);
+    setPhase("question");
+  };
+
+  const handleAnswer = (option) => {
+    if (selected) return;
+    setSelected(option);
+    if (option === currentQ.answer) {
+      setScores(prev => ({ ...prev, [currentPlayer]: (prev[currentPlayer] || 0) + 1 }));
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQIdx + 1 < questions.length) {
+      setCurrentQIdx(i => i + 1);
+      setSelected(null);
+    } else {
+      setCurrentPlayerIdx(i => (i + 1) % config.players.length);
+      setPhase("between");
+      setQuestions([]);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "#f0f0f0", fontFamily: "'Playfair Display', serif", padding: "24px 16px" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap'); * { box-sizing: border-box; } ::selection { background: #FFD700; color: #000; }`}</style>
+
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
+          {config.players.map((p, i) => (
+            <div key={p} style={{
+              flex: 1, minWidth: 100, background: i === currentPlayerIdx ? "#FFD70015" : "#161616",
+              border: `2px solid ${i === currentPlayerIdx ? "#FFD700" : "#222"}`,
+              borderRadius: 12, padding: "12px 16px", textAlign: "center"
+            }}>
+              <div style={{ fontFamily: "'DM Sans'", fontSize: 12, color: i === currentPlayerIdx ? "#FFD700" : "#666", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                {i === currentPlayerIdx ? "▶ " : ""}{p}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: i === currentPlayerIdx ? "#FFD700" : "#fff" }}>
+                {scores[p] || 0}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {phase === "roll" && (
+          <div style={{ textAlign: "center", padding: "48px 24px", background: "#161616", borderRadius: 20, border: "1px solid #222" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎲</div>
+            <h2 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 8px", color: "#fff" }}>{currentPlayer}'s Turn</h2>
+            <p style={{ fontFamily: "'DM Sans'", color: "#777", marginBottom: 32 }}>
+              {config.questionsPerTurn} question{config.questionsPerTurn > 1 ? "s" : ""} from random categories
+            </p>
+            <button onClick={startTurn} style={{
+              padding: "16px 40px", background: "#FFD700", color: "#000", border: "none",
+              borderRadius: 12, cursor: "pointer", fontFamily: "'Playfair Display'",
+              fontSize: 20, fontWeight: 900, boxShadow: "0 4px 24px rgba(255,215,0,0.3)"
+            }}>Roll for Category</button>
+          </div>
+        )}
+
+        {phase === "between" && (
+          <div style={{ textAlign: "center", padding: "40px 24px", background: "#161616", borderRadius: 20, border: "1px solid #222" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px" }}>Turn Complete!</h2>
+            <p style={{ fontFamily: "'DM Sans'", color: "#aaa", marginBottom: 28 }}>
+              Up next: <span style={{ color: "#FFD700" }}>{config.players[currentPlayerIdx]}</span>
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={() => setPhase("roll")} style={{
+                padding: "14px 32px", background: "#FFD700", color: "#000", border: "none",
+                borderRadius: 12, cursor: "pointer", fontFamily: "'Playfair Display'", fontSize: 18, fontWeight: 900
+              }}>Continue</button>
+              <button onClick={() => onEnd(scores)} style={{
+                padding: "14px 24px", background: "transparent", color: "#777", border: "1px solid #333",
+                borderRadius: 12, cursor: "pointer", fontFamily: "'DM Sans'", fontSize: 15
+              }}>End Game</button>
+            </div>
+          </div>
+        )}
+
+        {phase === "question" && currentQ && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{
+                display: "inline-block", padding: "4px 14px", borderRadius: 20,
+                background: (CATEGORY_COLORS[currentQ.category] || "#555") + "33",
+                border: `1px solid ${CATEGORY_COLORS[currentQ.category] || "#555"}`,
+                color: "#fff", fontFamily: "'DM Sans'", fontSize: 13
+              }}>
+                {currentQ.categoryLabel}
+              </div>
+              <div style={{ fontFamily: "'DM Sans'", color: "#666", fontSize: 13 }}>
+                Q{currentQIdx + 1} of {questions.length}
+              </div>
+            </div>
+
+            <div style={{ background: "#161616", borderRadius: 18, padding: "28px 24px", marginBottom: 20, border: "1px solid #222" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.45, margin: 0, color: "#fff" }}>
+                {currentQ.question}
+              </h2>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {currentQ.options.map((opt, i) => {
+                const isSelected = selected === opt;
+                const isCorrect = opt === currentQ.answer;
+                let bg = "#161616", border = "#2a2a2a", color = "#ddd";
+
+                if (selected) {
+                  if (isCorrect) { bg = "#27AE6022"; border = "#27AE60"; color = "#2ecc71"; }
+                  else if (isSelected) { bg = "#C0392B22"; border = "#C0392B"; color = "#e74c3c"; }
+                  else { color = "#555"; }
+                }
+
+                return (
+                  <button key={i} onClick={() => handleAnswer(opt)} style={{
+                    padding: "14px 20px", background: bg, border: `2px solid ${border}`,
+                    borderRadius: 12, color, cursor: selected ? "default" : "pointer",
+                    fontFamily: "'DM Sans'", fontSize: 16, textAlign: "left",
+                    transition: "all 0.2s", fontWeight: isCorrect && selected ? 700 : 400
+                  }}>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+
+            {selected && (
+              <div style={{ marginTop: 20, background: "#161616", borderRadius: 14, padding: "18px 20px", border: `1px solid ${selected === currentQ.answer ? "#27AE60" : "#C0392B"}` }}>
+                <p style={{ fontFamily: "'DM Sans'", fontSize: 14, color: "#bbb", margin: "0 0 16px", lineHeight: 1.6 }}>
+                  💡 {currentQ.explanation}
+                </p>
+                <button onClick={handleNext} style={{
+                  width: "100%", padding: "13px", background: "#FFD700", color: "#000",
+                  border: "none", borderRadius: 10, cursor: "pointer",
+                  fontFamily: "'Playfair Display'", fontSize: 17, fontWeight: 900
+                }}>
+                  {currentQIdx + 1 < questions.length ? "Next Question →" : "End Turn →"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 32, paddingTop: 20, borderTop: "1px solid #222" }}>
+          <span style={{ fontFamily: "'DM Sans'", fontSize: 13, color: "#555" }}>
+            {config.categories.length} categories · {config.yearFrom}-{config.yearTo}
+          </span>
+          <button onClick={() => onEnd(scores)} style={{
+            padding: "6px 14px", background: "transparent", color: "#555",
+            border: "1px solid #2a2a2a", borderRadius: 8, cursor: "pointer",
+            fontFamily: "'DM Sans'", fontSize: 13
+          }}>⚙ New Game</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EndScreen({ scores, players, onRestart }) {
+  const sorted = [...players].sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
+  const winner = sorted[0];
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f0f", color: "#f0f0f0", fontFamily: "'Playfair Display', serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap'); * { box-sizing: border-box; }`}</style>
+      <div style={{ maxWidth: 480, width: "100%", textAlign: "center" }}>
+        <div style={{ fontSize: 72, marginBottom: 8 }}>🏆</div>
+        <h1 style={{ fontSize: 40, fontWeight: 900, color: "#FFD700", margin: "0 0 4px" }}>{winner}</h1>
+        <p style={{ fontFamily: "'DM Sans'", color: "#aaa", marginBottom: 40 }}>Wins with {scores[winner] || 0} points!</p>
+        <div style={{ background: "#161616", borderRadius: 16, padding: 24, marginBottom: 32, border: "1px solid #222" }}>
+          {sorted.map((p, i) => (
+            <div key={p} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: i < sorted.length - 1 ? "1px solid #222" : "none" }}>
+              <span style={{ fontFamily: "'DM Sans'", color: i === 0 ? "#FFD700" : "#aaa" }}>
+                {["🥇", "🥈", "🥉"][i] || "  "} {p}
+              </span>
+              <span style={{ fontWeight: 700, color: i === 0 ? "#FFD700" : "#fff", fontSize: 20 }}>{scores[p] || 0}</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onRestart} style={{
+          padding: "16px 40px", background: "#FFD700", color: "#000", border: "none",
+          borderRadius: 12, cursor: "pointer", fontFamily: "'Playfair Display'",
+          fontSize: 20, fontWeight: 900, boxShadow: "0 4px 24px rgba(255,215,0,0.3)"
+        }}>Play Again</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState("setup");
+  const [gameConfig, setGameConfig] = useState(null);
+  const [finalScores, setFinalScores] = useState(null);
+
+  if (screen === "setup") return <SetupScreen onStart={(config) => { setGameConfig(config); setScreen("game"); }} />;
+  if (screen === "game") return <GameScreen config={gameConfig} onEnd={(scores) => { setFinalScores(scores); setScreen("end"); }} />;
+  if (screen === "end") return <EndScreen scores={finalScores || {}} players={gameConfig?.players || []} onRestart={() => { setGameConfig(null); setScreen("setup"); }} />;
+}
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
